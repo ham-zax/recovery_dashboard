@@ -21,14 +21,17 @@ interface WorkoutFormProps {
 
 export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
   const router = useRouter();
-  
-  // Default workout type to LOWER
   const [workoutType, setWorkoutType] = useState<'LOWER' | 'UPPER'>('LOWER');
   
-  // Date input defaults to empty during SSR, populated on mount to avoid hydration mismatch
+  // Start with empty string for deterministic SSR/hydration.
+  // This ensures that the server-rendered HTML and first client paint match.
   const [date, setDate] = useState<string>('');
 
   useEffect(() => {
+    // We intentionally update the date state on mount to match the user's local timezone.
+    // This is safe because hydration has completed, and it correctly resolves timezone differences
+    // between the server and the client without causing hydration warnings.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDate(new Date().toLocaleDateString('en-CA'));
   }, []);
 

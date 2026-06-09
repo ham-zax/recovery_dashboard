@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { RecoveryScore } from './RecoveryScore';
 import { MetricCard } from './MetricCard';
@@ -46,14 +46,20 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
   const [data, setData] = useState<DashboardResponse | null>(initialData ?? null);
   const [loading, setLoading] = useState<boolean>(!initialData);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState<number>(0);
+
+  const hasConsumedInitialData = useRef<boolean>(false);
 
   useEffect(() => {
-    // If it's the initial 7d view and we already have the initialData, skip fetch
-    if (days === 7 && initialData) {
+    // If it's the initial 7d view and we already have the initialData, skip fetch once during hydration
+    if (!hasConsumedInitialData.current && days === 7 && initialData) {
+      hasConsumedInitialData.current = true;
       setData(initialData);
       setLoading(false);
       return;
     }
+
+    hasConsumedInitialData.current = true;
 
     let active = true;
     async function fetchDashboard() {
@@ -83,7 +89,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
     return () => {
       active = false;
     };
-  }, [days, initialData]);
+  }, [days, initialData, retryTrigger]);
 
   if (error) {
     return (
@@ -92,7 +98,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
         <h3 className="text-base font-semibold text-accent-red mt-2">Error Loading Dashboard</h3>
         <p className="text-xs text-text-secondary mt-1">{error}</p>
         <button
-          onClick={() => setDays(days)}
+          onClick={() => setRetryTrigger((prev) => prev + 1)}
           className="mt-4 px-4 py-2 bg-bg-card-hover border border-border text-text-primary text-xs rounded-lg hover:bg-border transition-colors cursor-pointer"
         >
           Try Again
