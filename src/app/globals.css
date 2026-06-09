@@ -1,39 +1,39 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Backgrounds — iOS dark mode inspired */
-  --color-bg-primary: #000000;
-  --color-bg-card: #1c1c1e;
-  --color-bg-card-hover: #2c2c2e;
-  --color-bg-input: #1c1c1e;
-  --color-bg-elevated: #2c2c2e;
+  /* Backgrounds — Notion × Linear × Obsidian inspired (Zinc/Slate Matte scale) */
+  --color-bg-primary: #09090b;       /* Zinc 950 */
+  --color-bg-card: #121215;          /* Deep matte card */
+  --color-bg-card-hover: #18181c;    /* Card hover state */
+  --color-bg-input: #121215;
+  --color-bg-elevated: #1e1e24;
 
-  /* Borders — iOS separator */
-  --color-border: #38383a;
-  --color-border-focus: #48484a;
+  /* Borders — Clean, thin Obsidian borders */
+  --color-border: #222227;           /* Slate 800-ish */
+  --color-border-focus: #3f3f46;     /* Zinc 700 */
 
-  /* Text — Apple system hierarchy */
-  --color-text-primary: #f5f5f7;
-  --color-text-secondary: #8e8e93;
-  --color-text-tertiary: #48484a;
+  /* Text — Balanced gray scales */
+  --color-text-primary: #f4f4f5;      /* Zinc 100 */
+  --color-text-secondary: #a1a1aa;    /* Zinc 400 */
+  --color-text-tertiary: #52525b;     /* Zinc 600 */
 
-  /* Accents — iOS system colors */
-  --color-accent-blue: #0a84ff;
-  --color-accent-green: #30d158;
-  --color-accent-red: #ff453a;
-  --color-accent-amber: #ffd60a;
-  --color-accent-purple: #bf5af2;
+  /* Accents — Muted, sophisticated Linear colors */
+  --color-accent-blue: #38bdf8;       /* Sky 400 */
+  --color-accent-green: #34d399;      /* Emerald 400 */
+  --color-accent-red: #f87171;        /* Red 400 */
+  --color-accent-amber: #fbbf24;      /* Amber 400 */
+  --color-accent-purple: #818cf8;     /* Indigo 400 */
 
   /* Typography — mapped from next/font CSS variables */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', monospace;
 
   /* Radius scale */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 }
 
 /* Base styles */
@@ -46,8 +46,27 @@ html {
 
 body {
   background-color: var(--color-bg-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(129, 140, 248, 0.02) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(56, 189, 248, 0.01) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(167, 139, 250, 0.02) 0px, transparent 50%);
   color: var(--color-text-primary);
   overscroll-behavior: contain;
+  min-height: 100vh;
+}
+
+/* Premium Linear / Obsidian Glass Cards */
+.linear-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.01);
+  transition: border-color 200ms ease;
+}
+
+.linear-card:hover {
+  border-color: var(--color-border-focus);
 }
 
 /* Scrollbar — minimal */

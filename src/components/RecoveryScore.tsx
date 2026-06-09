@@ -14,6 +14,7 @@ export function RecoveryScore({ score }: RecoveryScoreProps) {
   const strokeDashoffset = circumference - (clampedScore / 100) * circumference;
 
   // Color based on score
+  // Color based on score
   const scoreColor =
     clampedScore >= 80
       ? 'stroke-accent-green'
@@ -23,8 +24,17 @@ export function RecoveryScore({ score }: RecoveryScoreProps) {
           ? 'stroke-accent-amber'
           : 'stroke-accent-red';
 
+  const glowFilter =
+    clampedScore >= 80
+      ? 'drop-shadow(0 0 5px rgba(52,211,153,0.4))'
+      : clampedScore >= 60
+        ? 'drop-shadow(0 0 5px rgba(129,140,248,0.4))'
+        : clampedScore >= 40
+          ? 'drop-shadow(0 0 5px rgba(251,191,36,0.4))'
+          : 'drop-shadow(0 0 5px rgba(248,113,113,0.4))';
+
   return (
-    <div className="bg-bg-card rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+    <div className="linear-card rounded-xl p-5 flex flex-col items-center justify-center text-center">
       <div className="relative flex items-center justify-center">
         <svg className="w-[140px] h-[140px] transform -rotate-90">
           {/* Background circle */}
@@ -32,7 +42,7 @@ export function RecoveryScore({ score }: RecoveryScoreProps) {
             cx="70"
             cy="70"
             r={radius}
-            className="stroke-border/40 fill-transparent"
+            className="stroke-border/20 fill-transparent"
             strokeWidth={strokeWidth}
           />
           {/* Progress circle */}
@@ -41,6 +51,7 @@ export function RecoveryScore({ score }: RecoveryScoreProps) {
             cy="70"
             r={radius}
             className={`${scoreColor} fill-transparent transition-all duration-700 ease-out`}
+            style={{ filter: glowFilter }}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}

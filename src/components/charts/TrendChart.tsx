@@ -86,10 +86,10 @@ export function TrendChart({ data }: TrendChartProps) {
     scales: {
       x: {
         grid: {
-          color: '#2a2a2a',
+          color: '#18181c',
         },
         ticks: {
-          color: '#888888',
+          color: '#71717a',
           font: {
             family: 'JetBrains Mono',
             size: 9,
@@ -102,10 +102,10 @@ export function TrendChart({ data }: TrendChartProps) {
         min: 0,
         max: 10,
         grid: {
-          color: '#2a2a2a',
+          color: '#18181c',
         },
         ticks: {
-          color: '#888888',
+          color: '#71717a',
           stepSize: 2,
           font: {
             family: 'JetBrains Mono',
@@ -115,7 +115,7 @@ export function TrendChart({ data }: TrendChartProps) {
         title: {
           display: true,
           text: 'Severity Level (0-10)',
-          color: '#888888',
+          color: '#71717a',
           font: {
             family: 'Inter',
             size: 10,
@@ -132,7 +132,7 @@ export function TrendChart({ data }: TrendChartProps) {
           drawOnChartArea: false,
         },
         ticks: {
-          color: '#888888',
+          color: '#71717a',
           stepSize: 1,
           callback: function (value: string | number) {
             if (value === 1) return 'Yes';
@@ -147,7 +147,7 @@ export function TrendChart({ data }: TrendChartProps) {
         title: {
           display: true,
           text: 'Walked Today',
-          color: '#888888',
+          color: '#71717a',
           font: {
             family: 'Inter',
             size: 10,
@@ -160,7 +160,7 @@ export function TrendChart({ data }: TrendChartProps) {
       legend: {
         position: 'top' as const,
         labels: {
-          color: '#e5e5e5',
+          color: '#a1a1aa',
           font: {
             family: 'Inter',
             size: 11,
@@ -169,10 +169,10 @@ export function TrendChart({ data }: TrendChartProps) {
         },
       },
       tooltip: {
-        backgroundColor: '#1a1a1a',
-        titleColor: '#e5e5e5',
-        bodyColor: '#e5e5e5',
-        borderColor: '#2a2a2a',
+        backgroundColor: '#121215',
+        titleColor: '#f4f4f5',
+        bodyColor: '#f4f4f5',
+        borderColor: '#222227',
         borderWidth: 1,
         titleFont: {
           family: 'Inter',
@@ -201,7 +201,7 @@ export function TrendChart({ data }: TrendChartProps) {
   };
 
   return (
-    <div className="w-full h-80 bg-bg-card border border-border rounded-xl p-6">
+    <div className="w-full h-80 linear-card rounded-xl p-6">
       <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
         Pain & Activity Trends
       </h3>

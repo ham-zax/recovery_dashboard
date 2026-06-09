@@ -18,19 +18,23 @@ export function MetricCard({
 }: MetricCardProps) {
   const isLowerBetter = label.toLowerCase() === 'pain' || label.toLowerCase() === 'reflux';
 
-  // Determine trend icon and color
+  // Determine trend icon and color info
   let TrendIcon = Minus;
-  let trendColorClass = 'text-text-tertiary';
+  let trendBadgeStyle = 'bg-border/10 border-border/30 text-text-tertiary';
 
   if (trend === 'up') {
     TrendIcon = TrendingUp;
-    trendColorClass = isLowerBetter ? 'text-accent-red' : 'text-accent-green';
+    trendBadgeStyle = isLowerBetter
+      ? 'bg-accent-red/5 border-accent-red/15 text-accent-red'
+      : 'bg-accent-green/5 border-accent-green/15 text-accent-green';
   } else if (trend === 'down') {
     TrendIcon = TrendingDown;
-    trendColorClass = isLowerBetter ? 'text-accent-green' : 'text-accent-red';
+    trendBadgeStyle = isLowerBetter
+      ? 'bg-accent-green/5 border-accent-green/15 text-accent-green'
+      : 'bg-accent-red/5 border-accent-red/15 text-accent-red';
   }
 
-  // Subtle accent dot color
+  // Subtle accent dot color (no glowing shadows to maintain a clean, stable UI)
   const dotColor: Record<string, string> = {
     'accent-red': 'bg-accent-red',
     'accent-amber': 'bg-accent-amber',
@@ -40,9 +44,9 @@ export function MetricCard({
   };
 
   return (
-    <div className="bg-bg-card rounded-2xl p-4 min-h-[100px] flex flex-col justify-between transition-colors hover:bg-bg-card-hover cursor-default">
+    <div className="linear-card rounded-xl p-4 min-h-[105px] flex flex-col justify-between cursor-default">
       {/* Label row with accent dot */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         {accentColor && (
           <div className={`w-1.5 h-1.5 rounded-full ${dotColor[accentColor] ?? ''}`} />
         )}
@@ -58,12 +62,12 @@ export function MetricCard({
 
       {/* Delta */}
       {trend && delta !== null && delta !== undefined && (
-        <div className="flex items-center gap-1 mt-2">
-          <TrendIcon size={12} className={trendColorClass} strokeWidth={2.5} />
-          <span className={`text-[11px] font-mono font-medium ${trendColorClass}`}>
-            {delta}
-          </span>
-          <span className="text-[10px] text-text-tertiary ml-0.5">vs prev</span>
+        <div className="flex items-center gap-1.5 mt-2">
+          <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-mono font-semibold ${trendBadgeStyle}`}>
+            <TrendIcon size={11} strokeWidth={2.5} />
+            <span>{delta}</span>
+          </div>
+          <span className="text-[10px] text-text-tertiary">vs prev</span>
         </div>
       )}
     </div>

@@ -57,11 +57,11 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
     scales: {
       x: {
         grid: {
-          color: '#2a2a2a',
+          color: '#18181c',
           drawOnChartArea: false,
         },
         ticks: {
-          color: '#888888',
+          color: '#71717a',
           font: {
             family: 'JetBrains Mono',
             size: 9,
@@ -72,10 +72,10 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
         min: 0,
         max: 100,
         grid: {
-          color: '#2a2a2a',
+          color: '#18181c',
         },
         ticks: {
-          color: '#888888',
+          color: '#71717a',
           stepSize: 50,
           callback: function (value) {
             return `${value}%`;
@@ -88,7 +88,7 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
         title: {
           display: true,
           text: 'Compliance',
-          color: '#888888',
+          color: '#71717a',
           font: {
             family: 'Inter',
             size: 10,
@@ -102,10 +102,10 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
         display: false, // Clean look, title in card header is enough
       },
       tooltip: {
-        backgroundColor: '#1a1a1a',
-        titleColor: '#e5e5e5',
-        bodyColor: '#e5e5e5',
-        borderColor: '#2a2a2a',
+        backgroundColor: '#121215',
+        titleColor: '#f4f4f5',
+        bodyColor: '#f4f4f5',
+        borderColor: '#222227',
         borderWidth: 1,
         titleFont: {
           family: 'Inter',
@@ -125,7 +125,7 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
   };
 
   return (
-    <div className="w-full h-48 bg-bg-card border border-border rounded-xl p-6">
+    <div className="w-full h-48 linear-card rounded-xl p-6">
       <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
         Daily Check-In Compliance Trend
       </h3>
