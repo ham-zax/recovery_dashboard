@@ -52,7 +52,7 @@ export function DashboardContent({ protocolStrip }: DashboardContentProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/recovery/api/dashboard?days=${days}`);
+        const response = await fetch(`/api/dashboard?days=${days}`);
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');
         }
@@ -202,7 +202,7 @@ export function DashboardContent({ protocolStrip }: DashboardContentProps) {
           <div className="flex flex-col sm:flex-row items-center gap-3 mt-2 md:mt-0 md:justify-end">
             <Link
               id="cta-checkin"
-              href="/recovery/checkin"
+              href="/checkin"
               className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3 md:py-2 bg-accent-purple text-bg-primary text-[15px] md:text-sm font-semibold rounded-xl hover:opacity-90 transition-all cursor-pointer shadow-sm"
             >
               <ClipboardCheck size={18} />
@@ -210,7 +210,7 @@ export function DashboardContent({ protocolStrip }: DashboardContentProps) {
             </Link>
             <Link
               id="cta-workout"
-              href="/recovery/workout"
+              href="/workout"
               className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3 md:py-2 bg-bg-card hover:bg-bg-card-hover border border-border text-text-primary text-[15px] md:text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Dumbbell size={18} />

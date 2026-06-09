@@ -12,11 +12,11 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/recovery', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/recovery/checkin', label: 'Check-In', icon: ClipboardCheck },
-  { href: '/recovery/workout', label: 'Workout', icon: Dumbbell },
-  { href: '/recovery/review', label: 'Review', icon: BarChart3 },
-  { href: '/recovery/settings', label: 'Settings', icon: Settings },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/checkin', label: 'Check-In', icon: ClipboardCheck },
+  { href: '/workout', label: 'Workout', icon: Dumbbell },
+  { href: '/review', label: 'Review', icon: BarChart3 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function BottomNav() {
@@ -34,9 +34,9 @@ export function BottomNav() {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||
-              (item.href !== '/recovery' && pathname.startsWith(item.href));
+              (item.href !== '' && pathname.startsWith(item.href));
             const isExactDashboard =
-              item.href === '/recovery' && pathname === '/recovery';
+              item.href === '' && pathname === '';
 
             const active = isActive || isExactDashboard;
 

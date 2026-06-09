@@ -90,7 +90,7 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
         throw new Error('Please log at least one set with reps > 0.');
       }
 
-      const response = await fetch('/recovery/api/workout', {
+      const response = await fetch('/api/workout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

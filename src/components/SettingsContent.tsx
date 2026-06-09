@@ -85,8 +85,8 @@ export function SettingsContent() {
     try {
       // Parallel fetches
       const [settingsRes, exercisesRes] = await Promise.all([
-        fetch('/recovery/api/settings'),
-        fetch('/recovery/api/exercises'),
+        fetch('/api/settings'),
+        fetch('/api/exercises'),
       ]);
 
       if (!settingsRes.ok || !exercisesRes.ok) {
@@ -162,7 +162,7 @@ export function SettingsContent() {
     setSaveStatus('saving');
     setSaveErrorMessage('');
     try {
-      const res = await fetch('/recovery/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings }),
@@ -190,7 +190,7 @@ export function SettingsContent() {
     setSaveStatus('saving');
     setSaveErrorMessage('');
     try {
-      const res = await fetch('/recovery/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +221,7 @@ export function SettingsContent() {
     if (!newExerciseName.trim()) return;
 
     try {
-      const res = await fetch('/recovery/api/exercises', {
+      const res = await fetch('/api/exercises', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +248,7 @@ export function SettingsContent() {
   const handleSaveEditExercise = async (id: number) => {
     if (!editingExerciseName.trim()) return;
     try {
-      const res = await fetch(`/recovery/api/exercises/${id}`, {
+      const res = await fetch(`/api/exercises/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,7 +269,7 @@ export function SettingsContent() {
   const handleDeactivateExercise = async (id: number) => {
     if (!confirm('Are you sure you want to deactivate this exercise? It will no longer show up in workout logs.')) return;
     try {
-      const res = await fetch(`/recovery/api/exercises/${id}`, {
+      const res = await fetch(`/api/exercises/${id}`, {
         method: 'DELETE',
       });
 
@@ -756,14 +756,14 @@ export function SettingsContent() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="/recovery/api/export?format=json"
+                  href="/api/export?format=json"
                   download
                   className="flex-1 min-h-[44px] flex items-center justify-center border border-border hover:bg-bg-card-hover text-text-primary font-medium rounded-xl text-sm transition-colors"
                 >
                   Export JSON
                 </a>
                 <a
-                  href="/recovery/api/export?format=csv"
+                  href="/api/export?format=csv"
                   download
                   className="flex-1 min-h-[44px] flex items-center justify-center border border-border hover:bg-bg-card-hover text-text-primary font-medium rounded-xl text-sm transition-colors"
                 >

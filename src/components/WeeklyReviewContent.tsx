@@ -102,7 +102,7 @@ export function WeeklyReviewContent({
       setError(null);
       setSaveStatus('idle');
       try {
-        const res = await fetch(`/recovery/api/review?weekStarting=${selectedWeek.startDateStr}`);
+        const res = await fetch(`/api/review?weekStarting=${selectedWeek.startDateStr}`);
         if (!res.ok) {
           throw new Error('Failed to fetch weekly review data');
         }
@@ -133,7 +133,7 @@ export function WeeklyReviewContent({
   const handleSave = async () => {
     setSaveStatus('saving');
     try {
-      const res = await fetch('/recovery/api/review', {
+      const res = await fetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

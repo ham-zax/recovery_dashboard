@@ -56,7 +56,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
     setSuccess(false);
 
     try {
-      const response = await fetch('/recovery/api/checkin', {
+      const response = await fetch('/api/checkin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
