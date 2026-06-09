@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
-import { computeRecoveryScore, WeekData, ScoreWeights } from '@/lib/score';
+import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS } from '@/lib/score';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -82,20 +82,25 @@ export async function computeStatsForPeriod(
     ? dailySittingCompliances.reduce((acc, c) => acc + c, 0) / dailySittingCompliances.length
     : 0;
 
-  const daysCheckedIn = logs.length;
-  const totalDays = 7; // Weekly reviews are always exactly 7 days
+  let totalScore = 0;
+  let daysWithScore = 0;
 
-  const weekData: WeekData = {
-    totalWalks,
-    totalWorkouts,
-    expectedWorkouts: expectedWorkouts || 1,
-    avgSleep,
-    avgSittingCompliance,
-    daysCheckedIn,
-    totalDays,
-  };
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dTime = startOfDay(d).getTime();
+    const log = logs.find(l => startOfDay(new Date(l.date)).getTime() === dTime) || null;
+    const dayKey = dayKeyMap[d.getDay()];
+    const scheduledType = schedule[dayKey];
+    const strengthScheduled = !!(scheduledType && scheduledType !== 'REST');
+    const strengthCompleted = workouts.some(w => startOfDay(new Date(w.date)).getTime() === dTime);
 
-  const recoveryScore = computeRecoveryScore(weekData, weights);
+    const state = calculateDailyRecovery(log, strengthScheduled, strengthCompleted, weights);
+    if (state.score !== null) {
+      totalScore += state.score;
+      daysWithScore++;
+    }
+  }
+
+  const recoveryScore = daysWithScore > 0 ? Math.round(totalScore / daysWithScore) : 0;
 
   const avgPain = logs.length > 0
     ? logs.reduce((acc, l) => acc + l.pain, 0) / logs.length
@@ -145,10 +150,17 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
   const settings = await prisma.setting.findMany();
   const settingsMap = new Map(settings.map(s => [s.key, s.value]));
 
-  const defaultWeights: ScoreWeights = { walking: 30, strength: 25, sleep: 20, sitting: 15, checkins: 10 };
-  const weights: ScoreWeights = settingsMap.has('recovery_score_weights')
-    ? JSON.parse(settingsMap.get('recovery_score_weights')!)
-    : defaultWeights;
+  let weights: ScoreWeights = DEFAULT_WEIGHTS;
+  if (settingsMap.has('recovery_score_weights')) {
+    try {
+      const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+      if ('pain' in parsed && 'reflux' in parsed) {
+        weights = parsed;
+      }
+    } catch {
+      // fallback
+    }
+  }
 
   const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
   const schedule = settingsMap.has('workout_schedule')

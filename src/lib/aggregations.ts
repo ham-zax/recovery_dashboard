@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, subDays, format, addDays } from 'date-fns';
-import { computeRecoveryScore, WeekData, ScoreWeights } from './score';
+import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS } from './score';
 
 interface DailyLog {
   id: number;
@@ -52,10 +52,18 @@ export async function getDashboardData(days: number) {
   const settingsMap = new Map(settings.map(s => [s.key, s.value]));
 
   // Parse weights
-  const defaultWeights: ScoreWeights = { walking: 30, strength: 25, sleep: 20, sitting: 15, checkins: 10 };
-  const weights: ScoreWeights = settingsMap.has('recovery_score_weights')
-    ? JSON.parse(settingsMap.get('recovery_score_weights')!)
-    : defaultWeights;
+  let weights: ScoreWeights = DEFAULT_WEIGHTS;
+  if (settingsMap.has('recovery_score_weights')) {
+    try {
+      const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+      // Ensure we have the right keys; if not, fallback to default
+      if ('pain' in parsed && 'reflux' in parsed) {
+        weights = parsed;
+      }
+    } catch {
+      // fallback to default
+    }
+  }
 
   // Parse workout schedule
   const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
@@ -107,32 +115,24 @@ export async function getDashboardData(days: number) {
   const totalWorkouts = currentWorkouts.length;
   const expectedWorkouts = countScheduledWorkouts(limitDate, addDays(today, 1), schedule);
 
-  const avgSleep = currentLogs.length > 0
-    ? currentLogs.reduce((acc, l) => acc + l.sleepHours, 0) / currentLogs.length
-    : 0;
-
   // Sitting compliance for each day: actual / target capped at 1.0
   const dailySittingCompliances = currentLogs.map(l => {
     const target = l.sittingBreaksTarget > 0 ? l.sittingBreaksTarget : 10;
     return Math.min(1, l.sittingBreaksActual / target);
   });
-  const avgSittingCompliance = dailySittingCompliances.length > 0
-    ? dailySittingCompliances.reduce((acc, c) => acc + c, 0) / dailySittingCompliances.length
-    : 0;
 
-  const daysCheckedIn = currentLogs.length;
+  // Find today's log for the Recovery Score calculation
+  const todayLog = currentLogs.find(l => startOfDay(new Date(l.date)).getTime() === today.getTime()) || null;
+  
+  const dayOfWeek = today.getDay();
+  const dayKey = dayKeyMap[dayOfWeek];
+  const scheduledType = schedule[dayKey];
+  const strengthScheduled = scheduledType && scheduledType !== 'REST';
+  
+  // Did they complete a workout today?
+  const strengthCompleted = currentWorkouts.some(w => startOfDay(new Date(w.date)).getTime() === today.getTime());
 
-  const weekData: WeekData = {
-    totalWalks,
-    totalWorkouts,
-    expectedWorkouts: expectedWorkouts || 1,
-    avgSleep,
-    avgSittingCompliance,
-    daysCheckedIn,
-    totalDays: days,
-  };
-
-  const recoveryScore = computeRecoveryScore(weekData, weights);
+  const recoveryState = calculateDailyRecovery(todayLog, !!strengthScheduled, strengthCompleted, weights);
 
   // Helper to calculate average of a numeric property
   const getAverage = (logs: DailyLog[], key: 'pain' | 'reflux' | 'sleepHours') => {
@@ -157,7 +157,6 @@ export async function getDashboardData(days: number) {
   // Current averages
   const currentAvgPain = getAverage(currentLogs, 'pain');
   const currentAvgReflux = getAverage(currentLogs, 'reflux');
-  const currentAvgSleep = getAverage(currentLogs, 'sleepHours');
   const currentAvgSittingActual = getSittingBreaksAverage(currentLogs, 'sittingBreaksActual');
   const currentAvgSittingTarget = getSittingBreaksAverage(currentLogs, 'sittingBreaksTarget');
   const currentAvgSittingCompliance = getSittingComplianceAverage(currentLogs);
@@ -165,7 +164,6 @@ export async function getDashboardData(days: number) {
   // Previous averages / counts
   const prevAvgPain = getAverage(previousLogs, 'pain');
   const prevAvgReflux = getAverage(previousLogs, 'reflux');
-  const prevAvgSleep = getAverage(previousLogs, 'sleepHours');
   const prevAvgSittingActual = getSittingBreaksAverage(previousLogs, 'sittingBreaksActual');
   const prevAvgSittingCompliance = getSittingComplianceAverage(previousLogs);
   const prevWalks = previousLogs.filter(l => l.walkedToday).length;
@@ -196,7 +194,6 @@ export async function getDashboardData(days: number) {
   const refluxStats = getDeltaStringAndTrend(currentAvgReflux, prevAvgReflux, hasPrevLogs);
   const walkingStats = getDeltaStringAndTrend(totalWalks, prevWalks, hasPrevLogs);
   const strengthStats = getDeltaStringAndTrend(totalWorkouts, prevWorkouts, hasPrevLogs);
-  const sleepStats = getDeltaStringAndTrend(currentAvgSleep, prevAvgSleep, hasPrevLogs);
   const complianceStats = getDeltaStringAndTrend(
     currentAvgSittingCompliance * 100,
     prevAvgSittingCompliance * 100,
@@ -220,7 +217,7 @@ export async function getDashboardData(days: number) {
   }
 
   return {
-    recoveryScore,
+    recoveryState,
     periodDays: days,
     metrics: {
       pain: {
@@ -237,11 +234,6 @@ export async function getDashboardData(days: number) {
         value: `${totalWorkouts} / ${expectedWorkouts}`,
         raw: totalWorkouts,
         ...strengthStats,
-      },
-      sleep: {
-        value: `${currentAvgSleep.toFixed(1)} hrs`,
-        raw: currentAvgSleep,
-        ...sleepStats,
       },
       compliance: {
         value: `${Math.round(currentAvgSittingCompliance * 100)}%`,

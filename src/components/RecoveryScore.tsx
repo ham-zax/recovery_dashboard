@@ -1,40 +1,39 @@
 'use client';
 
 import React from 'react';
+import { RecoveryState } from '@/lib/score';
 
 interface RecoveryScoreProps {
-  score: number;
+  state: RecoveryState;
 }
 
-export function RecoveryScore({ score }: RecoveryScoreProps) {
+export function RecoveryScore({ state }: RecoveryScoreProps) {
   const radius = 54;
   const strokeWidth = 7;
   const circumference = 2 * Math.PI * radius;
-  const clampedScore = Math.min(100, Math.max(0, score));
-  const strokeDashoffset = circumference - (clampedScore / 100) * circumference;
+  
+  const hasScore = state.score !== null;
+  const clampedScore = hasScore ? Math.min(100, Math.max(0, state.score!)) : 0;
+  const strokeDashoffset = hasScore ? circumference - (clampedScore / 100) * circumference : circumference;
 
-  // Color based on score
-  // Color based on score
-  const scoreColor =
-    clampedScore >= 80
-      ? 'stroke-accent-green'
-      : clampedScore >= 60
-        ? 'stroke-accent-purple'
-        : clampedScore >= 40
-          ? 'stroke-accent-amber'
-          : 'stroke-accent-red';
+  let scoreColor = 'stroke-border';
+  let glowFilter = 'none';
 
-  const glowFilter =
-    clampedScore >= 80
-      ? 'drop-shadow(0 0 5px rgba(52,211,153,0.4))'
-      : clampedScore >= 60
-        ? 'drop-shadow(0 0 5px rgba(129,140,248,0.4))'
-        : clampedScore >= 40
-          ? 'drop-shadow(0 0 5px rgba(251,191,36,0.4))'
-          : 'drop-shadow(0 0 5px rgba(248,113,113,0.4))';
+  if (hasScore) {
+    if (clampedScore >= 75) {
+      scoreColor = 'stroke-accent-green';
+      glowFilter = 'drop-shadow(0 0 5px rgba(52,211,153,0.4))';
+    } else if (clampedScore >= 50) {
+      scoreColor = 'stroke-accent-purple';
+      glowFilter = 'drop-shadow(0 0 5px rgba(129,140,248,0.4))';
+    } else {
+      scoreColor = 'stroke-accent-red';
+      glowFilter = 'drop-shadow(0 0 5px rgba(248,113,113,0.4))';
+    }
+  }
 
   return (
-    <div className="linear-card rounded-xl p-5 flex flex-col items-center justify-center text-center">
+    <div className="linear-card rounded-xl p-5 flex flex-col items-center justify-center text-center h-full min-h-[220px]">
       <div className="relative flex items-center justify-center">
         <svg className="w-[140px] h-[140px] transform -rotate-90">
           {/* Background circle */}
@@ -60,17 +59,28 @@ export function RecoveryScore({ score }: RecoveryScoreProps) {
         </svg>
         {/* Score text */}
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-[36px] font-extrabold text-text-primary font-mono leading-none tracking-tighter">
-            {clampedScore}
-          </span>
-          <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-1">
-            Score
-          </span>
+          {hasScore ? (
+            <>
+              <span className="text-[36px] font-extrabold text-text-primary font-mono leading-none tracking-tighter">
+                {clampedScore}
+              </span>
+              <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-1">
+                Score
+              </span>
+            </>
+          ) : (
+            <span className="text-[14px] font-semibold text-text-secondary leading-tight text-center px-4">
+              {state.status === 'Need Check-in' ? 'No Data' : 'Not Ready'}
+            </span>
+          )}
         </div>
       </div>
-      <p className="text-[11px] text-text-secondary mt-3 max-w-[180px] leading-relaxed">
-        Composite recovery score
-      </p>
+      <div className="mt-4 flex flex-col items-center">
+        <h3 className="text-sm font-semibold text-text-primary">{state.status}</h3>
+        <p className="text-[11px] text-text-secondary mt-1 max-w-[180px] leading-relaxed">
+          {state.message}
+        </p>
+      </div>
     </div>
   );
 }

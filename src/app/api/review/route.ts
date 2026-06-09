@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
-import { ScoreWeights } from '@/lib/score';
+import { ScoreWeights, DEFAULT_WEIGHTS } from '@/lib/score';
 import { getWeeklyReviewData, computeStatsForPeriod } from '@/lib/reviewData';
 
 export async function GET(request: NextRequest) {
@@ -38,10 +38,17 @@ export async function POST(request: NextRequest) {
     const settings = await prisma.setting.findMany();
     const settingsMap = new Map(settings.map(s => [s.key, s.value]));
 
-    const defaultWeights: ScoreWeights = { walking: 30, strength: 25, sleep: 20, sitting: 15, checkins: 10 };
-    const weights: ScoreWeights = settingsMap.has('recovery_score_weights')
-      ? JSON.parse(settingsMap.get('recovery_score_weights')!)
-      : defaultWeights;
+    let weights: ScoreWeights = DEFAULT_WEIGHTS;
+    if (settingsMap.has('recovery_score_weights')) {
+      try {
+        const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+        if ('pain' in parsed && 'reflux' in parsed) {
+          weights = parsed;
+        }
+      } catch {
+        // fallback
+      }
+    }
 
     const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
     const schedule = settingsMap.has('workout_schedule')
