@@ -1,11 +1,45 @@
 import { spawn, ChildProcess } from 'child_process';
-import puppeteer from 'puppeteer-core';
+import puppeteer, { Page } from 'puppeteer-core';
+import fs from 'fs';
+import { execSync } from 'child_process';
 
 const TEST_PORT = 3006;
 const BASE_URL = `http://localhost:${TEST_PORT}`;
 
 async function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Find Chrome/Chromium path on the system
+function findChromePath(): string | null {
+  const commonPaths = [
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/chrome',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  ];
+
+  for (const path of commonPaths) {
+    if (fs.existsSync(path)) {
+      return path;
+    }
+  }
+
+  // Try checking path using which/where command
+  try {
+    const whichCmd = process.platform === 'win32' ? 'where chrome' : 'which google-chrome || which chromium-browser || which chromium || which chrome';
+    const whichPath = execSync(whichCmd, { stdio: 'pipe' }).toString().trim().split('\n')[0];
+    if (whichPath && fs.existsSync(whichPath)) {
+      return whichPath;
+    }
+  } catch {
+    // Ignore error
+  }
+
+  return null;
 }
 
 // Poll server until ready
@@ -32,11 +66,61 @@ async function waitForServer(child: ChildProcess): Promise<boolean> {
   return false;
 }
 
+async function startDOMObserver(page: Page) {
+  await page.evaluate(`(() => {
+    const win = window;
+    win.__loadingDetected = false;
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node;
+            
+            // Check if this element or any child matches loader criteria
+            const hasSpinner = el.classList?.contains('animate-spin') || 
+                               (el.querySelector && el.querySelector('.animate-spin'));
+            const hasText = el.innerText && el.innerText.toUpperCase().includes('LOADING');
+            
+            if (hasSpinner || hasText) {
+              win.__loadingDetected = true;
+            }
+          }
+        }
+      }
+    });
+    win.__domObserver = observer;
+    observer.observe(document.body, { childList: true, subtree: true });
+  })()`);
+}
+
+async function stopDOMObserver(page: Page): Promise<boolean> {
+  const result = await page.evaluate(`(() => {
+    const win = window;
+    const observer = win.__domObserver;
+    if (observer) {
+      observer.disconnect();
+    }
+    const detected = win.__loadingDetected;
+    delete win.__domObserver;
+    delete win.__loadingDetected;
+    return !!detected;
+  })()`);
+  return !!result;
+}
+
 async function runLatencyTests() {
   console.log('--- STARTING NAVIGATION LATENCY VERIFICATION TESTS ---');
   
+  const chromePath = findChromePath();
+  if (!chromePath) {
+    console.warn('\n⚠️ [SKIPPED] No Google Chrome or Chromium executable found on this system.');
+    console.warn('Skipping navigation navigation latency verification tests.');
+    return;
+  }
+
+  console.log(`Using Chrome/Chromium executable at: ${chromePath}`);
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/google-chrome',
+    executablePath: chromePath,
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
@@ -51,124 +135,165 @@ async function runLatencyTests() {
     await page.goto(BASE_URL, { waitUntil: 'networkidle2' });
     console.log('✓ Dashboard home loaded successfully.');
 
+    // Wait a brief moment to let Next.js prefetching finish (since prefetching happens as links enter the viewport)
+    console.log('Waiting 1.5s for Next.js background prefetching to complete...');
+    await wait(1500);
+
     // ----------------------------------------------------
-    // Test 1: First Navigation to Review (Network-bound)
+    // Test 1: First Navigation to Review (Prefetched)
     // ----------------------------------------------------
-    console.log('\n[Test 1] Navigating to Weekly Review first time (expecting network-bound transition)...');
+    console.log('\n[Test 1] Navigating to Weekly Review (prefetched, expecting instant transition)...');
     
-    const firstReviewTime = await page.evaluate(async () => {
+    await startDOMObserver(page);
+    
+    const firstReviewTime = await page.evaluate(`(async () => {
       const start = performance.now();
-      const link = document.querySelector('a[href="/review"]') as HTMLElement;
+      const link = document.querySelector('a[href="/review"]');
       if (!link) throw new Error('Weekly Review sidebar link not found');
       link.click();
       
-      return new Promise<number>((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const check = () => {
-          if (document.body.innerText.includes('Weekly Stats Snapshot')) {
+          if (document.body.innerText.toLowerCase().includes('weekly stats snapshot')) {
             resolve(performance.now() - start);
           } else if (performance.now() - start > 10000) {
-            reject(new Error('Weekly Review first nav timeout after 10s'));
+            reject(new Error('Weekly Review first nav timeout after 10s. Current body text: ' + document.body.innerText.substring(0, 1000)));
           } else {
             setTimeout(check, 5);
           }
         };
         check();
       });
-    });
+    })()`) as number;
 
-    console.log(`  - First transition to Review took: ${firstReviewTime.toFixed(1)}ms`);
+    const loadingDetectedDuringTest1 = await stopDOMObserver(page);
+    console.log(`  - Transition to Review took: ${firstReviewTime.toFixed(1)}ms`);
+    console.log(`  - loading.tsx / Spinner detected: ${loadingDetectedDuringTest1 ? 'YES ❌' : 'NO  ✓'}`);
 
-    // ----------------------------------------------------
-    // Test 2: Navigate back to Dashboard (Network-bound / Cache fill)
-    // ----------------------------------------------------
-    console.log('\n[Test 2] Navigating back to Dashboard first time...');
-    const firstDashTime = await page.evaluate(async () => {
-      const start = performance.now();
-      const link = document.querySelector('a[href="/"]') as HTMLElement;
-      if (!link) throw new Error('Dashboard sidebar link not found');
-      link.click();
-      
-      return new Promise<number>((resolve, reject) => {
-        const check = () => {
-          if (document.body.innerText.includes('Recovery Score')) {
-            resolve(performance.now() - start);
-          } else if (performance.now() - start > 10000) {
-            reject(new Error('Dashboard first nav timeout after 10s'));
-          } else {
-            setTimeout(check, 5);
-          }
-        };
-        check();
-      });
-    });
-
-    console.log(`  - First transition back to Dashboard took: ${firstDashTime.toFixed(1)}ms`);
-
-    // Wait 1 second to ensure Router Cache dynamic staleTimes (30s) is active
-    await wait(1000);
-
-    // ----------------------------------------------------
-    // Test 3: Second Navigation to Review (Cache-hit / SWR)
-    // ----------------------------------------------------
-    console.log('\n[Test 3] Navigating to Weekly Review second time (expecting instant transition from Router Cache)...');
-    
-    const secondReviewTime = await page.evaluate(async () => {
-      const start = performance.now();
-      const link = document.querySelector('a[href="/review"]') as HTMLElement;
-      if (!link) throw new Error('Weekly Review sidebar link not found');
-      link.click();
-      
-      return new Promise<number>((resolve, reject) => {
-        const check = () => {
-          if (document.body.innerText.includes('Weekly Stats Snapshot')) {
-            resolve(performance.now() - start);
-          } else if (performance.now() - start > 5000) {
-            reject(new Error('Weekly Review second nav timeout after 5s'));
-          } else {
-            setTimeout(check, 2);
-          }
-        };
-        check();
-      });
-    });
-
-    console.log(`  - Second transition to Review took: ${secondReviewTime.toFixed(1)}ms`);
-
-    if (secondReviewTime > 150) {
-      throw new Error(`Perceived transition time (${secondReviewTime.toFixed(1)}ms) exceeded the 150ms latency budget! Client router cache not working.`);
+    if (loadingDetectedDuringTest1) {
+      throw new Error('Visual interruption: loading.tsx skeleton/spinner was rendered during transition to Review!');
     }
-    console.log('✓ Cache-hit navigation latency is well within the 150ms budget.');
+    if (firstReviewTime > 150) {
+      throw new Error(`First transition time to Review (${firstReviewTime.toFixed(1)}ms) exceeded the 150ms budget!`);
+    }
+    console.log('✓ Prefetched navigation is instant and did NOT trigger any loader flash.');
 
     // ----------------------------------------------------
-    // Test 4: Second Navigation back to Dashboard (Cache-hit / SWR)
+    // Test 2: Navigate back to Dashboard (Prefetched)
     // ----------------------------------------------------
-    console.log('\n[Test 4] Navigating back to Dashboard second time (expecting instant transition from Router Cache)...');
-    const secondDashTime = await page.evaluate(async () => {
+    console.log('\n[Test 2] Navigating back to Dashboard (expecting instant transition)...');
+    
+    await startDOMObserver(page);
+    
+    const firstDashTime = await page.evaluate(`(async () => {
       const start = performance.now();
-      const link = document.querySelector('a[href="/"]') as HTMLElement;
+      const link = document.querySelector('a[href="/"]');
       if (!link) throw new Error('Dashboard sidebar link not found');
       link.click();
       
-      return new Promise<number>((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const check = () => {
-          if (document.body.innerText.includes('Recovery Score')) {
+          if (document.body.innerText.toLowerCase().includes('recovery score')) {
             resolve(performance.now() - start);
-          } else if (performance.now() - start > 5000) {
-            reject(new Error('Dashboard second nav timeout after 5s'));
+          } else if (performance.now() - start > 10000) {
+            reject(new Error('Dashboard first nav timeout after 10s. Current body text: ' + document.body.innerText.substring(0, 1000)));
           } else {
-            setTimeout(check, 2);
+            setTimeout(check, 5);
           }
         };
         check();
       });
-    });
+    })()`) as number;
 
-    console.log(`  - Second transition back to Dashboard took: ${secondDashTime.toFixed(1)}ms`);
+    const loadingDetectedDuringTest2 = await stopDOMObserver(page);
+    console.log(`  - Transition back to Dashboard took: ${firstDashTime.toFixed(1)}ms`);
+    console.log(`  - loading.tsx / Spinner detected: ${loadingDetectedDuringTest2 ? 'YES ❌' : 'NO  ✓'}`);
 
+    if (loadingDetectedDuringTest2) {
+      throw new Error('Visual interruption: loading.tsx skeleton/spinner was rendered during transition back to Dashboard!');
+    }
+    if (firstDashTime > 150) {
+      throw new Error(`Transition back to Dashboard (${firstDashTime.toFixed(1)}ms) exceeded the 150ms budget!`);
+    }
+    console.log('✓ Navigation back to Dashboard is instant and did NOT trigger any loader flash.');
+
+    // ----------------------------------------------------
+    // Test 3: Navigate to Workout (Prefetched)
+    // ----------------------------------------------------
+    console.log('\n[Test 3] Navigating to Workout page (expecting instant transition)...');
+    
+    await startDOMObserver(page);
+    
+    const firstWorkoutTime = await page.evaluate(`(async () => {
+      const start = performance.now();
+      const link = document.querySelector('a[href="/workout"]');
+      if (!link) throw new Error('Workout sidebar link not found');
+      link.click();
+      
+      return new Promise((resolve, reject) => {
+        const check = () => {
+          if (document.body.innerText.toLowerCase().includes('workout logger')) {
+            resolve(performance.now() - start);
+          } else if (performance.now() - start > 10000) {
+            reject(new Error('Workout first nav timeout after 10s. Current body text: ' + document.body.innerText.substring(0, 1000)));
+          } else {
+            setTimeout(check, 5);
+          }
+        };
+        check();
+      });
+    })()`) as number;
+
+    const loadingDetectedDuringTest3 = await stopDOMObserver(page);
+    console.log(`  - Transition to Workout took: ${firstWorkoutTime.toFixed(1)}ms`);
+    console.log(`  - loading.tsx / Spinner detected: ${loadingDetectedDuringTest3 ? 'YES ❌' : 'NO  ✓'}`);
+
+    if (loadingDetectedDuringTest3) {
+      throw new Error('Visual interruption: loading.tsx skeleton/spinner was rendered during transition to Workout!');
+    }
+    if (firstWorkoutTime > 150) {
+      throw new Error(`Transition to Workout (${firstWorkoutTime.toFixed(1)}ms) exceeded the 150ms budget!`);
+    }
+    console.log('✓ Navigation to Workout is instant and did NOT trigger any loader flash.');
+
+    // ----------------------------------------------------
+    // Test 4: Navigate back to Dashboard from Workout
+    // ----------------------------------------------------
+    console.log('\n[Test 4] Navigating back to Dashboard from Workout...');
+    
+    await startDOMObserver(page);
+    
+    const secondDashTime = await page.evaluate(`(async () => {
+      const start = performance.now();
+      const link = document.querySelector('a[href="/"]');
+      if (!link) throw new Error('Dashboard sidebar link not found');
+      link.click();
+      
+      return new Promise((resolve, reject) => {
+        const check = () => {
+          if (document.body.innerText.toLowerCase().includes('recovery score')) {
+            resolve(performance.now() - start);
+          } else if (performance.now() - start > 10000) {
+            reject(new Error('Dashboard second nav timeout after 10s. Current body text: ' + document.body.innerText.substring(0, 1000)));
+          } else {
+            setTimeout(check, 5);
+          }
+        };
+        check();
+      });
+    })()`) as number;
+
+    const loadingDetectedDuringTest4 = await stopDOMObserver(page);
+    console.log(`  - Transition back to Dashboard took: ${secondDashTime.toFixed(1)}ms`);
+    console.log(`  - loading.tsx / Spinner detected: ${loadingDetectedDuringTest4 ? 'YES ❌' : 'NO  ✓'}`);
+
+    if (loadingDetectedDuringTest4) {
+      throw new Error('Visual interruption: loading.tsx skeleton/spinner was rendered during second transition back to Dashboard!');
+    }
     if (secondDashTime > 150) {
-      throw new Error(`Perceived transition time back to Dashboard (${secondDashTime.toFixed(1)}ms) exceeded the 150ms budget!`);
+      throw new Error(`Second transition back to Dashboard (${secondDashTime.toFixed(1)}ms) exceeded the 150ms budget!`);
     }
-    console.log('✓ Dashboard cache-hit navigation latency is well within the 150ms budget.');
+    console.log('✓ All navigation transitions avoid the loader flash completely and load instantly.');
 
     console.log('\n--- ALL NAVIGATION LATENCY TESTS PASSED SUCCESSFULLY ---');
 

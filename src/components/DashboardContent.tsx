@@ -224,6 +224,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
             <Link
               id="cta-checkin"
               href="/checkin"
+              prefetch={true}
               className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3 md:py-2 bg-accent-purple text-bg-primary text-[15px] md:text-sm font-semibold rounded-xl hover:opacity-90 transition-all cursor-pointer shadow-sm"
             >
               <ClipboardCheck size={18} />
@@ -232,6 +233,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
             <Link
               id="cta-workout"
               href="/workout"
+              prefetch={true}
               className="flex w-full sm:w-auto items-center justify-center gap-2 px-6 py-3 md:py-2 bg-bg-card hover:bg-bg-card-hover border border-border text-text-primary text-[15px] md:text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-sm"
             >
               <Dumbbell size={18} />

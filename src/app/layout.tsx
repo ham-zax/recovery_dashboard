@@ -64,6 +64,7 @@ export default function RootLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     className="flex items-center gap-3 px-3 py-2.5 text-[13px] text-text-secondary rounded-[10px] hover:bg-bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
                   >
                     <Icon size={18} strokeWidth={1.5} className="opacity-70" />
