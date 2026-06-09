@@ -52,12 +52,36 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
   const workoutDates = new Set(workouts.map(w => formatDayKey(w.date)));
 
   let walkStreak = 0;
+  let consecutiveInactiveDays = 0;
+  const recentActivityWindow: boolean[] = [];
+  let wasHighVolumeLowPainState = false;
 
   for (let i = 0; i < sortedLogs.length; i++) {
     const log = sortedLogs[i];
     const prevLog = i > 0 ? sortedLogs[i - 1] : null;
     const logDate = formatDayKey(log.date);
     const dayEvents: RecoveryEvent[] = [];
+
+    // Track Activity Volume
+    const hasWorkout = workoutDates.has(logDate);
+    const isActiveDay = log.walkedToday || hasWorkout;
+
+    if (isActiveDay) {
+      consecutiveInactiveDays = 0;
+    } else {
+      consecutiveInactiveDays++;
+    }
+
+    recentActivityWindow.push(isActiveDay);
+    if (recentActivityWindow.length > 5) {
+      recentActivityWindow.shift();
+    }
+
+    const activeDaysInWindow = recentActivityWindow.filter(Boolean).length;
+    const isHighVolumeWindow = recentActivityWindow.length === 5 && activeDaysInWindow >= 4;
+    const currentPainStateForDay = getPainState(log.pain);
+    const isCurrentlyHighVolumeLowPain = isHighVolumeWindow && currentPainStateForDay === 'Low';
+
 
     // 1. Walking Streaks (Behavior transitions)
     if (log.walkedToday) {
@@ -91,6 +115,18 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
         dayEvents.push({ id: `pain-drop-${logDate}`, type: 'pain_drop', category: 'pain', headline: 'Pain dropped significantly', date: logDate, severity: 'positive', importance: 'medium', priority: 70, timelineEligible: true, dashboardEligible: true });
       }
 
+      // Cross-Metric: Pattern A (Deconditioning Flare)
+      // High priority because it represents a negative behavioral outcome
+      if ((painDelta >= 2 || (currentPainState === 'High' && prevPainState !== 'High')) && consecutiveInactiveDays >= 3) {
+        dayEvents.push({ id: `pain-inactive-flare-${logDate}`, type: 'pain_inactive_flare', category: 'pain', headline: 'Pain increased during a period of reduced activity', date: logDate, severity: 'negative', importance: 'major', priority: 105, timelineEligible: true, dashboardEligible: true });
+      }
+
+      // Cross-Metric: Pattern C (Adaptation Success)
+      if (isCurrentlyHighVolumeLowPain && !wasHighVolumeLowPainState && painDelta <= 0) {
+        // Priority 85 overrides basic pain drops
+        dayEvents.push({ id: `pain-adaptation-${logDate}`, type: 'pain_adaptation', category: 'pain', headline: 'Maintaining low pain despite high activity', date: logDate, severity: 'positive', importance: 'major', priority: 85, timelineEligible: true, dashboardEligible: true });
+      }
+
       // 3. Reflux State Transitions
       const currentRefluxState = getRefluxState(log.reflux);
       const prevRefluxState = getRefluxState(prevLog.reflux);
@@ -103,7 +139,6 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
     }
     
     // 4. Workout Interactions
-    const hasWorkout = workoutDates.has(logDate);
     if (hasWorkout && log.pain <= 3 && getPainState(log.pain) === 'Low') {
        dayEvents.push({ id: `workout-low-pain-${logDate}`, type: 'workout_low_pain', category: 'activity', headline: 'Completed workout with low pain', date: logDate, severity: 'positive', importance: 'medium', priority: 30, timelineEligible: true, dashboardEligible: true });
     }
@@ -117,6 +152,8 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
       // Keep only the highest priority event for this category
       events.push(catEvents[0]);
     });
+
+    wasHighVolumeLowPainState = isCurrentlyHighVolumeLowPain;
   }
 
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
