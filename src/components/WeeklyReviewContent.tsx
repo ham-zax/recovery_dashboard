@@ -5,50 +5,20 @@ import { format, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TrendChart } from './charts/TrendChart';
 import { MetricCard } from './MetricCard';
+import { WeeklyReviewResponse } from '@/lib/reviewData';
 
 interface WeeklyReviewContentProps {
   protocolStartDateStr: string;
   totalDurationDays: number;
-}
-
-interface WeeklyReviewResponse {
-  weekStarting: string;
-  currentStats: {
-    avgPain: number;
-    avgReflux: number;
-    totalWalks: number;
-    totalWorkouts: number;
-    avgSleep: number;
-    avgSittingBreaks: number;
-    avgSittingCompliance: number;
-    recoveryScore: number;
-  };
-  prevStats: {
-    avgPain: number;
-    avgReflux: number;
-    totalWalks: number;
-    totalWorkouts: number;
-    avgSleep: number;
-    avgSittingBreaks: number;
-    avgSittingCompliance: number;
-    recoveryScore: number;
-  };
-  notes: {
-    improved: string;
-    worsened: string;
-    nextWeekFocus: string;
-  };
-  dailyLogs: {
-    date: string;
-    pain: number;
-    walked: boolean;
-    reflux: number;
-  }[];
+  initialWeekIndex: number;
+  initialData: WeeklyReviewResponse;
 }
 
 export function WeeklyReviewContent({
   protocolStartDateStr,
   totalDurationDays,
+  initialWeekIndex,
+  initialData,
 }: WeeklyReviewContentProps) {
   // Generate all 12 weeks (memoized to avoid reconstruction on every reflection input keystroke)
   const weeks = useMemo(() => {
@@ -68,52 +38,53 @@ export function WeeklyReviewContent({
     });
   }, [protocolStartDateStr, totalDurationDays]);
 
-  // Start with null on SSR to ensure a deterministic hydration shell.
-  // We use selectedWeekIndex === null to detect hydration and prevent double-fetching.
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number | null>(null);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(initialWeekIndex);
   const [retryTrigger, setRetryTrigger] = useState<number>(0);
 
+  const hasReconciled = React.useRef(false);
+
   useEffect(() => {
-    // Timezone Trade-off (Correctness vs. Latency):
-    // We intentionally calculate the user's actual calendar week index on the client side
-    // on mount to ensure local timezone date correctness. We accept a client-side fetch 
-    // waterfall (which triggers immediately after mount once selectedWeekIndex is updated)
-    // because server-computed dates would show the incorrect week to users whose local timezones
-    // differ from the server.
+    if (hasReconciled.current) return;
+    hasReconciled.current = true;
+
     const today = new Date();
     let computedIndex = 0;
     for (let i = 0; i < weeks.length; i++) {
-      if (today >= weeks[i].startDate && today <= weeks[i].endDate) {
+      if (today >= weeks[i].startDate && today <= new Date(weeks[i].endDate.getTime() + 24 * 60 * 60 * 1000 - 1)) {
         computedIndex = i;
         break;
       }
     }
-    if (today > weeks[weeks.length - 1].endDate) {
+    if (today > new Date(weeks[weeks.length - 1].endDate.getTime() + 24 * 60 * 60 * 1000 - 1)) {
       computedIndex = weeks.length - 1;
     }
-    // We update this state on mount to align the week index with user local time.
-    // The resulting re-render is intended and required to prevent SSR timezone mismatches.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedWeekIndex(computedIndex);
-  }, [weeks]); // Run on mount and if weeks definition changes
+    
+    if (computedIndex !== initialWeekIndex) {
+      setSelectedWeekIndex(computedIndex);
+    }
+  }, [weeks, initialWeekIndex]);
 
-  const selectedWeek = weeks[selectedWeekIndex ?? 0];
+  const selectedWeek = weeks[selectedWeekIndex];
 
-  const [data, setData] = useState<WeeklyReviewResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<WeeklyReviewResponse | null>(initialData);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Notes state
-  const [improved, setImproved] = useState<string>('');
-  const [worsened, setWorsened] = useState<string>('');
-  const [nextWeekFocus, setNextWeekFocus] = useState<string>('');
+  const [improved, setImproved] = useState<string>(initialData.notes.improved);
+  const [worsened, setWorsened] = useState<string>(initialData.notes.worsened);
+  const [nextWeekFocus, setNextWeekFocus] = useState<string>(initialData.notes.nextWeekFocus);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const lastFetchedWeek = React.useRef<number>(initialWeekIndex);
+  const initialRetryTrigger = React.useRef<number>(0);
 
   // Fetch data on week selection change
   useEffect(() => {
-    // Skip fetching if selectedWeekIndex is null to prevent double-fetching on mount.
-    // We only initiate the network request once the client determines the actual week index.
-    if (selectedWeekIndex === null) return;
+    if (selectedWeekIndex === lastFetchedWeek.current && retryTrigger === initialRetryTrigger.current) return;
+    
+    lastFetchedWeek.current = selectedWeekIndex;
+    initialRetryTrigger.current = retryTrigger;
 
     let active = true;
     async function fetchReview() {
@@ -244,42 +215,31 @@ export function WeeklyReviewContent({
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigateWeek('prev')}
-            disabled={(selectedWeekIndex ?? 0) === 0}
+            disabled={selectedWeekIndex === 0}
             className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
           >
             <ChevronLeft size={20} />
           </button>
-          {selectedWeekIndex === null ? (
-            <span className="h-6 w-16 bg-border/40 rounded animate-pulse inline-block" />
-          ) : (
-            <span className="text-lg font-bold text-text-primary font-mono select-none">
-              {selectedWeek.label}
-            </span>
-          )}
+          <span className="text-lg font-bold text-text-primary font-mono select-none">
+            {selectedWeek.label}
+          </span>
           <button
             onClick={() => navigateWeek('next')}
-            disabled={(selectedWeekIndex ?? 0) === weeks.length - 1}
+            disabled={selectedWeekIndex === weeks.length - 1}
             className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
           >
             <ChevronRight size={20} />
           </button>
-          {selectedWeekIndex === null ? (
-            <span className="h-4 w-32 bg-border/40 rounded animate-pulse inline-block ml-2" />
-          ) : (
-            <span className="text-xs text-text-secondary font-mono ml-2">
-              ({selectedWeek.rangeStr})
-            </span>
-          )}
+          <span className="text-xs text-text-secondary font-mono ml-2">
+            ({selectedWeek.rangeStr})
+          </span>
         </div>
 
         <select
-          value={selectedWeekIndex ?? ''}
+          value={selectedWeekIndex}
           onChange={(e) => setSelectedWeekIndex(parseInt(e.target.value))}
           className="bg-bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-text-secondary focus:border-border-focus font-mono outline-none"
         >
-          {selectedWeekIndex === null && (
-            <option value="" disabled>Loading Week...</option>
-          )}
           {weeks.map((w) => (
             <option key={w.index} value={w.index}>
               {w.label} ({format(w.startDate, 'MMM dd')} – {format(w.endDate, 'MMM dd')})
