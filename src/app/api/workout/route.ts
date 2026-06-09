@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
           }
           
           const reps = parseInt(set.reps, 10);
-          if (isNaN(reps) || reps < 0) {
-            throw new Error(`Invalid reps value for exercise ID ${exerciseId} set ${idx + 1}`);
+          if (isNaN(reps) || reps <= 0) {
+            throw new Error(`Invalid reps value (must be > 0) for exercise ID ${exerciseId} set ${idx + 1}`);
           }
 
           const weight = (set.weight !== undefined && set.weight !== null && set.weight !== '') 

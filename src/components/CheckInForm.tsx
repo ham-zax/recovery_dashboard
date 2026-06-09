@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Plus, Minus } from 'lucide-react';
+import { clampNumber } from '@/lib/validation';
 
 interface StepperInputProps {
   id?: string;
@@ -33,7 +34,7 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handleMinus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card border-r border-border active:bg-bg-card-hover touch-manipulation"
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover touch-manipulation transition-colors"
       >
         <Minus size={20} />
       </button>
@@ -44,13 +45,26 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
         max={max}
         step={step}
         value={value !== null && value !== undefined ? value : ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
+        onBlur={(e) => {
+          let val = e.target.value;
+          if (val !== '') {
+            let num = Number(val);
+            if (!isNaN(num)) {
+              onChange(String(clampNumber(num, min, max)));
+            } else {
+              onChange(String(min ?? 0));
+            }
+          }
+        }}
         className="flex-1 w-full text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none"
       />
       <button 
         type="button" 
         onClick={handlePlus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card border-l border-border active:bg-bg-card-hover touch-manipulation"
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover touch-manipulation transition-colors"
       >
         <Plus size={20} />
       </button>

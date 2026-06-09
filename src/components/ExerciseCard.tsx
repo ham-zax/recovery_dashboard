@@ -1,10 +1,11 @@
 'use client';
 
 import { Plus, Trash2 } from 'lucide-react';
+import { parseBoundedInt, parseBoundedFloat } from '@/lib/validation';
 
 export interface SetData {
   weight: number | null;
-  reps: number;
+  reps: number | null;
   rpe: number | null;
 }
 
@@ -18,20 +19,23 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise, sets, lastSession, onChange }: ExerciseCardProps) {
   
   const handleWeightChange = (index: number, val: string) => {
+    const num = val === '' ? null : parseBoundedFloat(val, 0, undefined, 0);
     const newSets = [...sets];
-    newSets[index].weight = val === '' ? null : parseFloat(val);
+    newSets[index].weight = num;
     onChange(newSets);
   };
 
   const handleRepsChange = (index: number, val: string) => {
+    const num = val === '' ? null : parseBoundedInt(val, 0, undefined, 0);
     const newSets = [...sets];
-    newSets[index].reps = val === '' ? 0 : parseInt(val, 10);
+    newSets[index].reps = num;
     onChange(newSets);
   };
 
   const handleRpeChange = (index: number, val: string) => {
+    const num = val === '' ? null : parseBoundedInt(val, 1, 10, 5);
     const newSets = [...sets];
-    newSets[index].rpe = val === '' ? null : parseInt(val, 10);
+    newSets[index].rpe = num;
     onChange(newSets);
   };
 
@@ -39,7 +43,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
     const lastSet = sets[sets.length - 1];
     const newSet: SetData = lastSet 
       ? { weight: lastSet.weight, reps: lastSet.reps, rpe: lastSet.rpe } 
-      : { weight: null, reps: 10, rpe: null };
+      : { weight: null, reps: null, rpe: null };
     onChange([...sets, newSet]);
   };
 
@@ -116,9 +120,9 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                   type="number"
                   step="1"
                   min="0"
-                  value={set.reps === 0 && set.weight === null ? '' : set.reps}
+                  value={set.reps !== null ? set.reps : ''}
                   onChange={(e) => handleRepsChange(idx, e.target.value)}
-                  placeholder={lastSet?.reps != null ? String(lastSet.reps) : '0'}
+                  placeholder={lastSet?.reps != null ? String(lastSet.reps) : '--'}
                   className="w-full bg-bg-input border border-border rounded-md px-2 py-1.5 text-center font-mono text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40"
                 />
 

@@ -414,7 +414,7 @@ export function WeeklyReviewContent({
                   onChange={(e) => setImproved(e.target.value)}
                   placeholder="e.g. Scapular pain decreased during workouts..."
                   rows={3}
-                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none border border-transparent focus:border resize-none min-h-[100px]"
                 />
               </div>
 
@@ -428,7 +428,7 @@ export function WeeklyReviewContent({
                   onChange={(e) => setWorsened(e.target.value)}
                   placeholder="e.g. Neck stiffness felt higher after long sitting blocks..."
                   rows={3}
-                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none border border-transparent focus:border resize-none min-h-[100px]"
                 />
               </div>
 
@@ -442,7 +442,7 @@ export function WeeklyReviewContent({
                   onChange={(e) => setNextWeekFocus(e.target.value)}
                   placeholder="e.g. Stand up every 45 mins. Keep walking streak..."
                   rows={3}
-                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none border border-transparent focus:border resize-none min-h-[100px]"
                 />
               </div>
             </div>

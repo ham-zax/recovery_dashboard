@@ -42,9 +42,9 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
     const initial: Record<number, SetData[]> = {};
     exercises.forEach((ex) => {
       initial[ex.id] = [
-        { weight: null, reps: 0, rpe: null },
-        { weight: null, reps: 0, rpe: null },
-        { weight: null, reps: 0, rpe: null },
+        { weight: null, reps: null, rpe: null },
+        { weight: null, reps: null, rpe: null },
+        { weight: null, reps: null, rpe: null },
       ];
     });
     return initial;
@@ -79,7 +79,7 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
           const sets = workoutSets[ex.id] || [];
           // A set is valid if it has positive reps.
           // Weight can be null, RPE can be null, but reps is required and must be > 0.
-          const validSets = sets.filter((s) => s.reps > 0);
+          const validSets = sets.filter((s) => s.reps !== null && s.reps > 0);
           return {
             exerciseId: ex.id,
             sets: validSets.map((s) => ({
@@ -122,9 +122,9 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
         const reset: Record<number, SetData[]> = { ...prev };
         exercises.forEach((ex) => {
           reset[ex.id] = [
-            { weight: null, reps: 10, rpe: null },
-            { weight: null, reps: 10, rpe: null },
-            { weight: null, reps: 10, rpe: null },
+            { weight: null, reps: null, rpe: null },
+            { weight: null, reps: null, rpe: null },
+            { weight: null, reps: null, rpe: null },
           ];
         });
         return reset;

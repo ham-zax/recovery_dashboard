@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Target, Activity, CheckCircle2, AlertTriangle, ChevronRight, History, GitMerge } from 'lucide-react';
+import React from 'react';
+import { Target, Activity, CheckCircle2, ChevronRight, History, GitMerge } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
@@ -172,55 +172,15 @@ const ProtocolCard = ({ p, isBest = false }: { p: ProtocolStats, isBest?: boolea
   </Link>
 );
 
-export function ProtocolsContent() {
-  const [protocols, setProtocols] = useState<ProtocolStats[]>([]);
-  const [timeline, setTimeline] = useState<ProtocolTimelineEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const [res, timeRes] = await Promise.all([
-          fetch('/api/protocols'),
-          fetch('/api/protocols/timeline')
-        ]);
-        if (!res.ok) throw new Error('Failed to load protocols');
-        if (!timeRes.ok) throw new Error('Failed to load timeline');
-        const data = await res.json();
-        const timeData = await timeRes.json();
-        setProtocols(data.protocols);
-        setTimeline(timeData.timeline || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading protocols');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-6 max-w-5xl mx-auto pb-24">
-        <div className="h-8 w-48 bg-bg-card animate-pulse rounded-lg border border-border" />
-        <div className="space-y-4">
-          <div className="h-48 bg-bg-card animate-pulse rounded-2xl border border-border" />
-          <div className="h-48 bg-bg-card animate-pulse rounded-2xl border border-border" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-bg-card border border-accent-red/20 rounded-2xl max-w-2xl mx-auto text-center mt-12">
-        <AlertTriangle className="w-12 h-12 text-accent-red mx-auto" />
-        <h3 className="text-lg font-semibold text-text-primary mt-4">Failed to Load Protocol Review</h3>
-        <p className="text-sm text-text-secondary mt-2">{error}</p>
-      </div>
-    );
-  }
+export function ProtocolsContent({ 
+  initialProtocols, 
+  initialTimeline 
+}: { 
+  initialProtocols: ProtocolStats[], 
+  initialTimeline: ProtocolTimelineEvent[] 
+}) {
+  const protocols = initialProtocols;
+  const timeline = initialTimeline;
 
   const evaluatedProtocols = protocols
     .filter(p => p.observedOutcome && p.observedOutcome.observedOutcome !== 'Insufficient Data')

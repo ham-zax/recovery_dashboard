@@ -156,14 +156,19 @@ input[type='range']::-moz-range-thumb {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Focus ring — Apple style */
+/* Focus ring — Apple style for accessibility, excluding styled inputs */
 *:focus-visible {
   outline: 2px solid var(--color-accent-blue);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Smooth transitions — selective, not global */
+input:focus-visible, 
+textarea:focus-visible, 
+select:focus-visible,
+.outline-none:focus-visible {
+  outline: none;
+}
 a, button, input, select, textarea {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }

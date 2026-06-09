@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { parseBoundedInt } from '@/lib/validation';
 
 interface Exercise {
   id: number;
@@ -41,15 +42,23 @@ interface ProtocolState {
   active: boolean;
 }
 
-export function SettingsContent() {
+export function SettingsContent({
+  initialSettings,
+  initialProtocol,
+  initialLock,
+  initialExercises
+}: {
+  initialSettings: Record<string, string>;
+  initialProtocol: ProtocolState;
+  initialLock: { version: string; lockedUntil: string; description: string } | null;
+  initialExercises: Exercise[];
+}) {
   const router = useRouter();
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [protocol, setProtocol] = useState<ProtocolState | null>(null);
-  const [lock, setLock] = useState<{ version: string; lockedUntil: string; description: string } | null>(null);
+  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
+  const [protocol, setProtocol] = useState<ProtocolState | null>(initialProtocol);
+  const [lock, setLock] = useState<{ version: string; lockedUntil: string; description: string } | null>(initialLock);
   
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>('');
 
@@ -61,13 +70,31 @@ export function SettingsContent() {
   const [editingExerciseCategory, setEditingExerciseCategory] = useState<'LOWER' | 'UPPER'>('LOWER');
 
   // Protocol Lock form state
-  const [lockVersion, setLockVersion] = useState<string>('v1.0');
-  const [lockDate, setLockDate] = useState<string>('');
-  const [lockDescription, setLockDescription] = useState<string>('Execute one protocol consistently.');
+  const [lockVersion, setLockVersion] = useState<string>(initialLock?.version || 'v1.0');
+  const [lockDate, setLockDate] = useState<string>(
+    initialLock 
+      ? format(new Date(initialLock.lockedUntil), 'yyyy-MM-dd') 
+      : (initialSettings['protocol_locked_until'] || format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
+  );
+  const [lockDescription, setLockDescription] = useState<string>(initialLock?.description || 'Execute one protocol consistently.');
 
   // Protocol Change state
   const [changeReason, setChangeReason] = useState<string>('');
   const [changeNotes, setChangeNotes] = useState<string>('');
+
+  useEffect(() => {
+    setExercises(initialExercises);
+    setSettings(initialSettings);
+    setProtocol(initialProtocol);
+    setLock(initialLock);
+    setLockVersion(initialLock?.version || 'v1.0');
+    setLockDate(
+      initialLock 
+        ? format(new Date(initialLock.lockedUntil), 'yyyy-MM-dd') 
+        : (initialSettings['protocol_locked_until'] || format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
+    );
+    setLockDescription(initialLock?.description || 'Execute one protocol consistently.');
+  }, [initialExercises, initialSettings, initialProtocol, initialLock]);
 
   // Parse state helper
   const getWeights = (): ScoreWeights => {
@@ -88,59 +115,6 @@ export function SettingsContent() {
     if (!lock) return false;
     return new Date(lock.lockedUntil) > new Date();
   };
-
-  const loadAll = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Parallel fetches
-      const [settingsRes, exercisesRes] = await Promise.all([
-        fetch('/api/settings'),
-        fetch('/api/exercises'),
-      ]);
-
-      if (!settingsRes.ok || !exercisesRes.ok) {
-        throw new Error('Failed to load settings or exercises');
-      }
-
-      const settingsData = await settingsRes.json();
-      const exercisesData = await exercisesRes.json();
-
-      setSettings(settingsData.settings);
-      setProtocol(settingsData.protocol);
-      setLock(settingsData.protocolLock);
-      setExercises(exercisesData);
-
-      if (settingsData.protocolLock) {
-        setLockVersion(settingsData.protocolLock.version);
-        setLockDate(format(new Date(settingsData.protocolLock.lockedUntil), 'yyyy-MM-dd'));
-        setLockDescription(settingsData.protocolLock.description ?? '');
-      } else {
-        if (!settingsData.settings['protocol_locked_until']) {
-          const defaultDate = new Date();
-          defaultDate.setDate(defaultDate.getDate() + 14);
-          setLockDate(format(defaultDate, 'yyyy-MM-dd'));
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch settings');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    if (active) {
-      const timer = setTimeout(() => {
-        loadAll();
-      }, 0);
-      return () => {
-        active = false;
-        clearTimeout(timer);
-      };
-    }
-  }, [loadAll]);
 
   const handleUpdateSetting = (key: string, value: string) => {
     setSettings(prev => ({
@@ -197,7 +171,6 @@ export function SettingsContent() {
       setChangeNotes('');
       setTimeout(() => setSaveStatus('idle'), 3000);
       router.refresh();
-      loadAll();
     } catch (err) {
       setSaveStatus('error');
       setSaveErrorMessage(err instanceof Error ? err.message : 'Error saving settings');
@@ -232,7 +205,6 @@ export function SettingsContent() {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
       router.refresh();
-      loadAll();
     } catch (err) {
       setSaveStatus('error');
       setSaveErrorMessage(err instanceof Error ? err.message : 'Error locking protocol');
@@ -257,7 +229,6 @@ export function SettingsContent() {
 
       setNewExerciseName('');
       router.refresh();
-      loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error adding exercise');
     }
@@ -285,7 +256,6 @@ export function SettingsContent() {
 
       setEditingExerciseId(null);
       router.refresh();
-      loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error saving exercise');
     }
@@ -301,40 +271,10 @@ export function SettingsContent() {
       if (!res.ok) throw new Error('Failed to deactivate exercise');
 
       router.refresh();
-      loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error deactivating exercise');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="space-y-6 max-w-5xl mx-auto pb-24">
-        <div className="h-8 w-48 bg-bg-card animate-pulse rounded-lg border border-border" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-[300px] bg-bg-card animate-pulse rounded-2xl border border-border" />
-          <div className="h-[300px] bg-bg-card animate-pulse rounded-2xl border border-border" />
-          <div className="h-[400px] bg-bg-card animate-pulse rounded-2xl border border-border col-span-2" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-bg-card border border-accent-red/20 rounded-2xl max-w-2xl mx-auto text-center mt-12">
-        <AlertTriangle className="w-12 h-12 text-accent-red mx-auto" />
-        <h3 className="text-lg font-semibold text-text-primary mt-4">Failed to Load Settings</h3>
-        <p className="text-sm text-text-secondary mt-2">{error}</p>
-        <button
-          onClick={loadAll}
-          className="mt-6 px-6 min-h-[44px] bg-accent-purple text-bg-primary font-bold rounded-xl text-sm cursor-pointer"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
 
   const w = getWeights();
   const sch = getSchedule();
@@ -506,9 +446,19 @@ export function SettingsContent() {
                 <label className="text-sm text-text-primary font-medium">Duration (Days)</label>
                 <input
                   type="number"
+                  min="1"
                   value={settings.protocol_duration_days ?? '84'}
                   disabled={locked}
-                  onChange={(e) => handleUpdateSetting('protocol_duration_days', e.target.value)}
+                  onChange={(e) => {
+                    handleUpdateSetting('protocol_duration_days', e.target.value);
+                  }}
+                  onBlur={(e) => {
+                    let val = e.target.value;
+                    if (val !== '') {
+                      val = String(parseBoundedInt(val, 1, 365, 84) ?? 84);
+                    }
+                    handleUpdateSetting('protocol_duration_days', val);
+                  }}
                   className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none disabled:opacity-50 w-full sm:w-32 transition-colors"
                 />
               </div>
@@ -517,8 +467,15 @@ export function SettingsContent() {
                 <label className="text-sm text-text-primary font-medium">Sitting Breaks Target</label>
                 <input
                   type="number"
+                  min="0"
                   value={protocol?.sittingTarget ?? '10'}
-                  onChange={(e) => setProtocol((prev: ProtocolState | null) => prev ? ({...prev, sittingTarget: e.target.value === '' ? 0 : Number(e.target.value)}) : prev)}
+                  onChange={(e) => {
+                    setProtocol((prev: ProtocolState | null) => prev ? ({...prev, sittingTarget: e.target.value === '' ? 0 : Number(e.target.value)}) : prev)
+                  }}
+                  onBlur={(e) => {
+                    const num = parseBoundedInt(e.target.value, 0, 100, 0) ?? 0;
+                    setProtocol((prev: ProtocolState | null) => prev ? ({...prev, sittingTarget: num}) : prev)
+                  }}
                   className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none w-full sm:w-32 transition-colors"
                 />
               </div>
@@ -588,7 +545,13 @@ export function SettingsContent() {
                         max="100"
                         value={w[k]}
                         disabled={locked}
-                        onChange={(e) => handleUpdateWeight(k, e.target.value === '' ? 0 : Number(e.target.value))}
+                        onChange={(e) => {
+                          handleUpdateWeight(k, e.target.value === '' ? 0 : Number(e.target.value));
+                        }}
+                        onBlur={(e) => {
+                          const num = parseBoundedInt(e.target.value, 0, 100, 0) ?? 0;
+                          handleUpdateWeight(k, num);
+                        }}
                         className="bg-bg-input border border-border rounded-xl px-3 min-h-[44px] w-20 text-center text-sm font-mono text-text-primary focus:border-border-focus outline-none disabled:opacity-50 transition-colors"
                       />
                       <span className="text-sm text-text-tertiary font-mono">%</span>

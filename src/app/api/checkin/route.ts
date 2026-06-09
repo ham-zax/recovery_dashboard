@@ -38,29 +38,41 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Pain and reflux metrics are required' }, { status: 400 });
     }
 
+    const pain = parseInt(body.pain);
+    const reflux = parseInt(body.reflux);
+    if (isNaN(pain) || pain < 0 || pain > 10) return Response.json({ error: 'Pain must be 0-10' }, { status: 400 });
+    if (isNaN(reflux) || reflux < 0 || reflux > 10) return Response.json({ error: 'Reflux must be 0-10' }, { status: 400 });
+
+    const sleepHours = parseFloat(body.sleepHours ?? 0);
+    if (isNaN(sleepHours) || sleepHours < 0 || sleepHours > 24) return Response.json({ error: 'Sleep must be 0-24' }, { status: 400 });
+
+    const sittingBreaksActual = parseInt(body.sittingBreaksActual ?? 0);
+    if (isNaN(sittingBreaksActual) || sittingBreaksActual < 0) return Response.json({ error: 'Breaks must be non-negative' }, { status: 400 });
+
+
     const date = startOfDay(new Date(body.date ?? new Date()));
     const protocol = await getActiveProtocol();
 
     const log = await prisma.dailyLog.upsert({
       where: { date },
       update: {
-        pain: parseInt(body.pain),
-        reflux: parseInt(body.reflux),
+        pain,
+        reflux,
         walkedToday: !!body.walkedToday,
         strengthToday: !!body.strengthToday,
-        sleepHours: parseFloat(body.sleepHours ?? 0),
-        sittingBreaksActual: parseInt(body.sittingBreaksActual ?? 0),
+        sleepHours,
+        sittingBreaksActual,
         notes: body.notes ?? null,
         protocolId: protocol.id,
       },
       create: {
         date,
-        pain: parseInt(body.pain),
-        reflux: parseInt(body.reflux),
+        pain,
+        reflux,
         walkedToday: !!body.walkedToday,
         strengthToday: !!body.strengthToday,
-        sleepHours: parseFloat(body.sleepHours ?? 0),
-        sittingBreaksActual: parseInt(body.sittingBreaksActual ?? 0),
+        sleepHours,
+        sittingBreaksActual,
         notes: body.notes ?? null,
         protocolId: protocol.id,
       },
