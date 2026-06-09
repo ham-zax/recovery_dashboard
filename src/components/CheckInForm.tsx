@@ -2,7 +2,61 @@
 
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check } from 'lucide-react';
+import { Check, Plus, Minus } from 'lucide-react';
+
+interface StepperInputProps {
+  id?: string;
+  value: number | string | null;
+  onChange: (val: string) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperInputProps) => {
+  const handleMinus = () => {
+    const current = value === null || value === '' ? min : Number(value);
+    const next = Math.max(min, current - step);
+    const fixedNext = Number(next.toFixed(2));
+    onChange(fixedNext.toString());
+  };
+  
+  const handlePlus = () => {
+    const current = value === null || value === '' ? min : Number(value);
+    const next = max !== undefined ? Math.min(max, current + step) : current + step;
+    const fixedNext = Number(next.toFixed(2));
+    onChange(fixedNext.toString());
+  };
+
+  return (
+    <div className="flex items-center h-[56px] w-full bg-bg-input border border-border rounded-xl overflow-hidden focus-within:border-border-focus">
+      <button 
+        type="button" 
+        onClick={handleMinus}
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card border-r border-border active:bg-bg-card-hover touch-manipulation"
+      >
+        <Minus size={20} />
+      </button>
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value !== null && value !== undefined ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 w-full text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none"
+      />
+      <button 
+        type="button" 
+        onClick={handlePlus}
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card border-l border-border active:bg-bg-card-hover touch-manipulation"
+      >
+        <Plus size={20} />
+      </button>
+    </div>
+  );
+};
 
 interface CheckInInitialData {
   pain: number;
@@ -94,51 +148,35 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Pain Level Slider */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <label htmlFor="pain-range" className="text-[17px] font-semibold text-text-primary">
-            Pain
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        {/* Pain Level */}
+        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[120px]">
+          <label htmlFor="pain-input" className="block text-[15px] font-medium text-text-secondary mb-2">
+            Pain (0-10)
           </label>
-          <span className="text-xl font-mono font-bold text-text-primary">{pain}/10</span>
-        </div>
-        <div className="relative pt-2 pb-2">
-          <input
-            id="pain-range"
-            type="range"
-            min="0"
-            max="10"
+          <StepperInput
+            id="pain-input"
+            min={0}
+            max={10}
+            step={1}
             value={pain}
-            onChange={(e) => setPain(parseInt(e.target.value, 10))}
-            className="w-full h-2 rounded-full cursor-pointer appearance-none bg-bg-input accent-accent-purple"
-            style={{
-              background: `linear-gradient(to right, var(--color-accent-purple) ${(pain / 10) * 100}%, var(--color-bg-input) ${(pain / 10) * 100}%)`
-            }}
+            onChange={(v) => setPain(v === '' ? 0 : parseInt(v, 10))}
           />
         </div>
-      </div>
 
-      {/* Reflux Severity Slider */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <label htmlFor="reflux-range" className="text-[17px] font-semibold text-text-primary">
-            Reflux
+        {/* Reflux Level */}
+        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[120px]">
+          <label htmlFor="reflux-input" className="block text-[15px] font-medium text-text-secondary mb-2">
+            Reflux (0-10)
           </label>
-          <span className="text-xl font-mono font-bold text-text-primary">{reflux}/10</span>
-        </div>
-        <div className="relative pt-2 pb-2">
-          <input
-            id="reflux-range"
-            type="range"
-            min="0"
-            max="10"
+          <StepperInput
+            id="reflux-input"
+            min={0}
+            max={10}
+            step={1}
             value={reflux}
-            onChange={(e) => setReflux(parseInt(e.target.value, 10))}
-            className="w-full h-2 rounded-full cursor-pointer appearance-none bg-bg-input accent-accent-purple"
-            style={{
-              background: `linear-gradient(to right, var(--color-accent-purple) ${(reflux / 10) * 100}%, var(--color-bg-input) ${(reflux / 10) * 100}%)`
-            }}
+            onChange={(v) => setReflux(v === '' ? 0 : parseInt(v, 10))}
           />
         </div>
       </div>
@@ -173,40 +211,31 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
 
       {/* Sleep and Sitting Breaks Inputs */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[100px]">
-          <label htmlFor="sleep-input" className="block text-[15px] font-medium text-text-secondary">
-            Sleep
+        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[120px]">
+          <label htmlFor="sleep-input" className="block text-[15px] font-medium text-text-secondary mb-2">
+            Sleep (h)
           </label>
-          <div className="flex items-center gap-2 mt-auto">
-            <input
-              id="sleep-input"
-              type="number"
-              step="0.5"
-              min="0"
-              max="24"
-              value={sleepHours}
-              onChange={(e) => setSleepHours(e.target.value === '' ? '' : parseFloat(e.target.value))}
-              className="bg-transparent border-none text-2xl font-mono font-bold text-text-primary w-20 outline-none p-0 focus:ring-0"
-            />
-            <span className="text-text-secondary text-lg">h</span>
-          </div>
+          <StepperInput
+            id="sleep-input"
+            min={0}
+            max={24}
+            step={0.5}
+            value={sleepHours}
+            onChange={(v) => setSleepHours(v === '' ? '' : parseFloat(v))}
+          />
         </div>
 
-        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[100px]">
-          <label htmlFor="breaks-input" className="block text-[15px] font-medium text-text-secondary">
-            Sitting Breaks
+        <div className="bg-bg-card rounded-2xl border border-border p-4 flex flex-col justify-between h-[120px]">
+          <label htmlFor="breaks-input" className="block text-[15px] font-medium text-text-secondary mb-2">
+            Breaks / {sittingBreaksTarget}
           </label>
-          <div className="flex items-center gap-1 mt-auto">
-            <input
-              id="breaks-input"
-              type="number"
-              min="0"
-              value={sittingBreaksActual}
-              onChange={(e) => setSittingBreaksActual(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-              className="bg-transparent border-none text-2xl font-mono font-bold text-text-primary w-14 outline-none p-0 focus:ring-0 text-right"
-            />
-            <span className="text-text-secondary text-lg font-mono">/ {sittingBreaksTarget}</span>
-          </div>
+          <StepperInput
+            id="breaks-input"
+            min={0}
+            step={1}
+            value={sittingBreaksActual}
+            onChange={(v) => setSittingBreaksActual(v === '' ? '' : parseInt(v, 10))}
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
-import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS } from '@/lib/score';
+import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -36,6 +36,7 @@ interface ComputedStats {
   avgSittingBreaks: number;
   avgSittingCompliance: number;
   recoveryScore: number;
+  daysWithScore: number;
 }
 
 export async function computeStatsForPeriod(
@@ -119,6 +120,7 @@ export async function computeStatsForPeriod(
     avgSittingBreaks,
     avgSittingCompliance,
     recoveryScore,
+    daysWithScore,
   };
 }
 
@@ -154,9 +156,7 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
   if (settingsMap.has('recovery_score_weights')) {
     try {
       const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
-      if ('pain' in parsed && 'reflux' in parsed) {
-        weights = parsed;
-      }
+      weights = validateWeights(parsed);
     } catch {
       // fallback
     }

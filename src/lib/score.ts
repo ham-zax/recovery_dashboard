@@ -14,6 +14,35 @@ export const DEFAULT_WEIGHTS: ScoreWeights = {
   strength: 20
 };
 
+export function validateWeights(weights: unknown): ScoreWeights {
+  if (!weights || typeof weights !== 'object') return DEFAULT_WEIGHTS;
+  
+  const isValid = (val: unknown) => typeof val === 'number' && !isNaN(val) && val >= 0;
+  
+  const w = weights as Record<string, unknown>;
+
+  if (
+    isValid(w.pain) &&
+    isValid(w.reflux) &&
+    isValid(w.walking) &&
+    isValid(w.compliance) &&
+    isValid(w.strength)
+  ) {
+    const pain = w.pain as number;
+    const reflux = w.reflux as number;
+    const walking = w.walking as number;
+    const compliance = w.compliance as number;
+    const strength = w.strength as number;
+
+    const total = pain + reflux + walking + compliance + strength;
+    if (total > 0) {
+      return { pain, reflux, walking, compliance, strength };
+    }
+  }
+  
+  return DEFAULT_WEIGHTS;
+}
+
 export type RecoveryStatus = 'Ready' | 'Recovering' | 'Needs Attention' | 'Need Check-in' | 'Insufficient Data';
 
 export interface RecoveryState {

@@ -79,7 +79,7 @@ async function runTests() {
   const dashData = await dashRes.json();
   
   // Validate basic shape
-  if (typeof dashData.recoveryScore !== 'number' || !dashData.metrics || !Array.isArray(dashData.chartData)) {
+  if (typeof dashData.recoveryState !== 'object' || !dashData.metrics || !Array.isArray(dashData.chartData)) {
     throw new Error('Dashboard API response shape is invalid.');
   }
   

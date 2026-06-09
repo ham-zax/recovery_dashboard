@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, subDays, format, addDays } from 'date-fns';
-import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS } from './score';
+import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
 
 interface DailyLog {
   id: number;
@@ -56,10 +56,7 @@ export async function getDashboardData(days: number) {
   if (settingsMap.has('recovery_score_weights')) {
     try {
       const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
-      // Ensure we have the right keys; if not, fallback to default
-      if ('pain' in parsed && 'reflux' in parsed) {
-        weights = parsed;
-      }
+      weights = validateWeights(parsed);
     } catch {
       // fallback to default
     }

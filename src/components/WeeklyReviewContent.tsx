@@ -211,6 +211,22 @@ export function WeeklyReviewContent({
     reflux: log.reflux,
   })) ?? [];
 
+  let protocolResponse = 'Insufficient Data';
+  let responseColor = 'text-text-secondary';
+  
+  if (data && data.currentStats.daysWithScore >= 4) {
+    if (data.currentStats.recoveryScore >= 75) {
+      protocolResponse = 'Positive';
+      responseColor = 'text-accent-green';
+    } else if (data.currentStats.recoveryScore >= 50) {
+      protocolResponse = 'Neutral';
+      responseColor = 'text-accent-purple';
+    } else {
+      protocolResponse = 'Negative';
+      responseColor = 'text-accent-red';
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Week Navigator */}
@@ -257,16 +273,35 @@ export function WeeklyReviewContent({
           {/* Stats Summary Panel */}
           {data && (
             <div className="bg-bg-card border border-border rounded-xl p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-border/50">
+                <div>
+                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    Week Summary
+                  </h3>
+                  <div className="mt-2 flex items-baseline gap-3">
+                    <span className="text-xl font-bold text-text-primary">Protocol Response:</span>
+                    <span className={`text-xl font-bold ${responseColor}`}>
+                      {protocolResponse}
+                    </span>
+                  </div>
+                  {data.currentStats.daysWithScore < 4 && (
+                    <p className="text-sm text-text-secondary mt-2 font-mono">
+                      Coverage: {data.currentStats.daysWithScore}/7 days (Need at least 4 days for reliable assessment)
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
-                Weekly Stats Snapshot
+                Evidence
               </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 {/* Score */}
                 <MetricCard
-                  label="Recovery Score"
-                  value={`${data.currentStats.recoveryScore}%`}
-                  delta={getDeltaStr(data.currentStats.recoveryScore, data.prevStats.recoveryScore, true)}
-                  trend={getTrend(data.currentStats.recoveryScore, data.prevStats.recoveryScore)}
+                  label="Recovery Average"
+                  value={data.currentStats.daysWithScore >= 4 ? `${data.currentStats.recoveryScore}` : '--'}
+                  delta={data.currentStats.daysWithScore >= 4 ? getDeltaStr(data.currentStats.recoveryScore, data.prevStats.recoveryScore, false) : ''}
+                  trend={data.currentStats.daysWithScore >= 4 ? getTrend(data.currentStats.recoveryScore, data.prevStats.recoveryScore) : 'same'}
                   accentColor="accent-purple"
                 />
 
@@ -287,7 +322,9 @@ export function WeeklyReviewContent({
                   trend={getTrend(data.currentStats.avgReflux, data.prevStats.avgReflux)}
                   accentColor="accent-amber"
                 />
+              </div>
 
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Walks */}
                 <MetricCard
                   label="Walk Streak"
@@ -306,25 +343,14 @@ export function WeeklyReviewContent({
                   accentColor="accent-blue"
                 />
 
-                {/* Sleep */}
-                <MetricCard
-                  label="Avg Sleep"
-                  value={`${data.currentStats.avgSleep.toFixed(1)}h`}
-                  delta={getDeltaStr(data.currentStats.avgSleep, data.prevStats.avgSleep)}
-                  trend={getTrend(data.currentStats.avgSleep, data.prevStats.avgSleep)}
-                  accentColor="accent-blue"
-                />
-
                 {/* Sitting Breaks */}
-                <div className="col-span-2 lg:col-span-2">
-                  <MetricCard
-                    label="Sitting Breaks"
-                    value={`${data.currentStats.avgSittingBreaks.toFixed(1)}/day`}
-                    delta={getDeltaStr(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
-                    trend={getTrend(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
-                    accentColor="accent-purple"
-                  />
-                </div>
+                <MetricCard
+                  label="Sitting Breaks"
+                  value={`${data.currentStats.avgSittingBreaks.toFixed(1)}/day`}
+                  delta={getDeltaStr(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
+                  trend={getTrend(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
+                  accentColor="accent-purple"
+                />
               </div>
             </div>
           )}

@@ -8,6 +8,7 @@ import { TrendChart } from './charts/TrendChart';
 import { ComplianceChart } from './charts/ComplianceChart';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ClipboardCheck, Dumbbell } from 'lucide-react';
+import { RecoveryState } from '@/lib/score';
 
 interface MetricInfo {
   value: string;
@@ -17,13 +18,12 @@ interface MetricInfo {
 }
 
 interface DashboardResponse {
-  recoveryScore: number;
+  recoveryState: RecoveryState;
   periodDays: number;
   metrics: {
     pain: MetricInfo;
     walking: MetricInfo;
     strength: MetricInfo;
-    sleep: MetricInfo;
     compliance: MetricInfo;
     reflux: MetricInfo;
     sittingBreaks: MetricInfo;
@@ -118,109 +118,119 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
 
       {loading || !data ? (
         /* Loading Skeleton */
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
-          {/* Recovery Score Skeleton */}
-          <div className="md:col-span-1 bg-bg-card border border-border rounded-xl h-64 flex flex-col items-center justify-center">
+        <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full animate-pulse">
+          {/* Recovery Hero Skeleton */}
+          <div className="w-full bg-bg-card border border-border rounded-xl h-64 flex flex-col items-center justify-center">
             <div className="w-24 h-24 rounded-full border-4 border-border/40"></div>
             <div className="h-4 w-20 bg-border/40 rounded mt-4"></div>
           </div>
           {/* Metric Cards Skeleton */}
-          <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(6)].map((_, i) => (
+          <div className="w-full grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="bg-bg-card border border-border rounded-xl p-5 h-28 flex flex-col justify-between">
                 <div>
                   <div className="h-3 w-16 bg-border/40 rounded"></div>
-                  <div className="h-5 w-24 bg-border/40 rounded mt-2"></div>
+                  <div className="h-5 w-16 bg-border/40 rounded mt-2"></div>
                 </div>
-                <div className="h-3 w-28 bg-border/40 rounded mt-2"></div>
               </div>
             ))}
           </div>
           {/* Chart Skeleton */}
-          <div className="md:col-span-4 bg-bg-card border border-border rounded-xl h-80"></div>
+          <div className="w-full bg-bg-card border border-border rounded-xl h-80"></div>
         </div>
       ) : (
         /* Real Content Grid */
-        <div className="flex flex-col gap-6">
-          {/* Recovery Score & Segmented Control row for mobile, top layout for desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-1">
-              <RecoveryScore score={data.recoveryScore} />
+        <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full">
+          {/* Recovery Hero */}
+          <section className="w-full">
+            <RecoveryScore state={data.recoveryState} />
+          </section>
+
+          {/* Supporting Drivers */}
+          <section className="w-full">
+            <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Supporting Drivers</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <MetricCard
+                label="Compliance"
+                value={data.metrics.compliance.value}
+                delta={data.metrics.compliance.delta}
+                trend={data.metrics.compliance.trend}
+                accentColor="accent-green"
+              />
+              <MetricCard
+                label="Walking"
+                value={data.metrics.walking.value}
+                delta={data.metrics.walking.delta}
+                trend={data.metrics.walking.trend}
+                accentColor="accent-blue"
+              />
+              <MetricCard
+                label="Strength"
+                value={data.metrics.strength.value}
+                delta={data.metrics.strength.delta}
+                trend={data.metrics.strength.trend}
+                accentColor="accent-green"
+              />
+              <MetricCard
+                label="Reflux"
+                value={data.metrics.reflux.value}
+                delta={data.metrics.reflux.delta}
+                trend={data.metrics.reflux.trend}
+                accentColor="accent-amber"
+              />
+              <MetricCard
+                label="Pain"
+                value={data.metrics.pain.value}
+                delta={data.metrics.pain.delta}
+                trend={data.metrics.pain.trend}
+                accentColor="accent-red"
+              />
+            </div>
+          </section>
+
+          {/* Analytics */}
+          <section className="w-full space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Analytics</h2>
+              <SegmentedControl
+                options={[
+                  { label: '7d', value: 7 },
+                  { label: '30d', value: 30 },
+                  { label: '90d', value: 90 },
+                ]}
+                value={days}
+                onChange={(val) => setDays(Number(val))}
+              />
             </div>
 
-            <div className="md:col-span-3 flex flex-col gap-4">
-              <div className="flex justify-center md:justify-end">
-                <SegmentedControl
-                  options={[
-                    { label: '7d', value: 7 },
-                    { label: '30d', value: 30 },
-                    { label: '90d', value: 90 },
-                  ]}
-                  value={days}
-                  onChange={(val) => setDays(Number(val))}
-                />
+            {data.chartData.length === 0 ? (
+              <div className="linear-card rounded-xl border border-border p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">No Data Available</h3>
+                <p className="text-xs text-text-secondary max-w-xs mb-6">
+                  Log your daily check-ins to unlock trend analysis and compliance tracking.
+                </p>
+                <Link
+                  href="/checkin"
+                  prefetch={true}
+                  className="px-4 py-2 bg-accent-purple text-bg-primary text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Complete Check-In
+                </Link>
               </div>
-
-              {/* Metric Cards Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard
-                  label="Compliance"
-                  value={data.metrics.compliance.value}
-                  delta={data.metrics.compliance.delta}
-                  trend={data.metrics.compliance.trend}
-                  accentColor="accent-green"
-                />
-                <MetricCard
-                  label="Walking"
-                  value={data.metrics.walking.value}
-                  delta={data.metrics.walking.delta}
-                  trend={data.metrics.walking.trend}
-                  accentColor="accent-blue"
-                />
-                <MetricCard
-                  label="Strength"
-                  value={data.metrics.strength.value}
-                  delta={data.metrics.strength.delta}
-                  trend={data.metrics.strength.trend}
-                  accentColor="accent-green"
-                />
-                <MetricCard
-                  label="Sleep"
-                  value={data.metrics.sleep.value}
-                  delta={data.metrics.sleep.delta}
-                  trend={data.metrics.sleep.trend}
-                  accentColor="accent-purple"
-                />
-                <MetricCard
-                  label="Sitting Breaks"
-                  value={data.metrics.sittingBreaks.value}
-                  delta={data.metrics.sittingBreaks.delta}
-                  trend={data.metrics.sittingBreaks.trend}
-                  accentColor="accent-blue"
-                />
-                <MetricCard
-                  label="Pain"
-                  value={data.metrics.pain.value}
-                  delta={data.metrics.pain.delta}
-                  trend={data.metrics.pain.trend}
-                  accentColor="accent-red"
-                />
+            ) : (
+              <div className="space-y-6">
+                <div className="w-full">
+                  <TrendChart data={data.chartData} />
+                </div>
+                <div className="w-full">
+                  <ComplianceChart data={data.chartData} />
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </section>
 
-          {/* Trend Chart */}
-          <div className="w-full">
-            <TrendChart data={data.chartData} />
-          </div>
-
-          {/* Compliance Trend Bar Chart */}
-          <div className="w-full">
-            <ComplianceChart data={data.chartData} />
-          </div>
-
-          {/* Action Buttons (bottom on mobile, desktop can be wherever) */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-2 md:mt-0 md:justify-end">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 md:mt-0 md:justify-end">
             <Link
               id="cta-checkin"
               href="/checkin"

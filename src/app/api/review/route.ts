@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
-import { ScoreWeights, DEFAULT_WEIGHTS } from '@/lib/score';
+import { ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 import { getWeeklyReviewData, computeStatsForPeriod } from '@/lib/reviewData';
 
 export async function GET(request: NextRequest) {
@@ -42,9 +42,7 @@ export async function POST(request: NextRequest) {
     if (settingsMap.has('recovery_score_weights')) {
       try {
         const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
-        if ('pain' in parsed && 'reflux' in parsed) {
-          weights = parsed;
-        }
+        weights = validateWeights(parsed);
       } catch {
         // fallback
       }
