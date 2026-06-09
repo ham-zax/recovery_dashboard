@@ -1,67 +1,80 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Background */
-  --color-bg-primary: #0f0f0f;
-  --color-bg-card: #1a1a1a;
-  --color-bg-card-hover: #222222;
-  --color-bg-input: #141414;
+  /* Backgrounds — iOS dark mode inspired */
+  --color-bg-primary: #000000;
+  --color-bg-card: #1c1c1e;
+  --color-bg-card-hover: #2c2c2e;
+  --color-bg-input: #1c1c1e;
+  --color-bg-elevated: #2c2c2e;
 
-  /* Borders */
-  --color-border: #2a2a2a;
-  --color-border-focus: #3a3a3a;
+  /* Borders — iOS separator */
+  --color-border: #38383a;
+  --color-border-focus: #48484a;
 
-  /* Text */
-  --color-text-primary: #e5e5e5;
-  --color-text-secondary: #888888;
-  --color-text-tertiary: #555555;
+  /* Text — Apple system hierarchy */
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #8e8e93;
+  --color-text-tertiary: #48484a;
 
-  /* Accents */
-  --color-accent-blue: #4e8cff;
-  --color-accent-green: #34d399;
-  --color-accent-red: #f87171;
-  --color-accent-amber: #fbbf24;
-  --color-accent-purple: #a78bfa;
+  /* Accents — iOS system colors */
+  --color-accent-blue: #0a84ff;
+  --color-accent-green: #30d158;
+  --color-accent-red: #ff453a;
+  --color-accent-amber: #ffd60a;
+  --color-accent-purple: #bf5af2;
 
-  /* Typography */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* Typography — mapped from next/font CSS variables */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', monospace;
+
+  /* Radius scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
 }
 
 /* Base styles */
 html {
   color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
+  overscroll-behavior: contain;
 }
 
-/* Scrollbar */
+/* Scrollbar — minimal */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-primary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-focus);
 }
 
-/* Slider styling */
+/* Range slider — touch-friendly */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
   background: var(--color-border);
   outline: none;
 }
@@ -69,27 +82,68 @@ input[type='range'] {
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--color-accent-purple);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease;
 }
 
 input[type='range']::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.1);
 }
 
-/* Focus ring */
+input[type='range']::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+
+/* Firefox range thumb */
+input[type='range']::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-accent-purple);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus ring — Apple style */
 *:focus-visible {
   outline: 2px solid var(--color-accent-blue);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+/* Smooth transitions — selective, not global */
+a, button, input, select, textarea {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+/* Safe area for mobile bottom nav */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Number input — hide spin buttons for cleaner look */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
 }

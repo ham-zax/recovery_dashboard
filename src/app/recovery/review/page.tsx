@@ -1,8 +1,22 @@
-export default function ReviewPage() {
+import { prisma } from '@/lib/prisma';
+import { WeeklyReviewContent } from '@/components/WeeklyReviewContent';
+
+export default async function ReviewPage() {
+  const startDateSetting = await prisma.setting.findUnique({
+    where: { key: 'protocol_start_date' },
+  });
+
+  const durationSetting = await prisma.setting.findUnique({
+    where: { key: 'protocol_duration_days' },
+  });
+
+  const protocolStartDateStr = startDateSetting ? startDateSetting.value : '2026-06-09';
+  const totalDurationDays = durationSetting ? parseInt(durationSetting.value, 10) : 84;
+
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-6">Weekly Review</h2>
-      <p className="text-text-secondary">Coming soon — Auto-generated stats + manual reflections.</p>
-    </div>
+    <WeeklyReviewContent
+      protocolStartDateStr={protocolStartDateStr}
+      totalDurationDays={totalDurationDays}
+    />
   );
 }

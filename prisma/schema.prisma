@@ -10,8 +10,8 @@ datasource db {
 model DailyLog {
   id                  Int      @id @default(autoincrement())
   date                DateTime @unique
-  pain                Int      // 0-10
-  reflux              Int      // 0-10
+  pain                Int // 0-10
+  reflux              Int // 0-10
   walkedToday         Boolean
   strengthToday       Boolean
   sleepHours          Float
@@ -25,7 +25,7 @@ model DailyLog {
 model WorkoutSession {
   id        Int             @id @default(autoincrement())
   date      DateTime
-  type      String          // LOWER | UPPER
+  type      String // LOWER | UPPER
   notes     String?
   entries   ExerciseEntry[]
   createdAt DateTime        @default(now())
@@ -36,9 +36,9 @@ model ExerciseEntry {
   sessionId  Int
   exerciseId Int
   setNumber  Int
-  weight     Float?         // kg
+  weight     Float? // kg
   reps       Int
-  rpe        Int?           // 1-10
+  rpe        Int? // 1-10
   session    WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   exercise   Exercise       @relation(fields: [exerciseId], references: [id])
   createdAt  DateTime       @default(now())
@@ -47,7 +47,7 @@ model ExerciseEntry {
 model Exercise {
   id        Int             @id @default(autoincrement())
   name      String
-  category  String          // LOWER | UPPER
+  category  String // LOWER | UPPER
   sortOrder Int
   active    Boolean         @default(true)
   entries   ExerciseEntry[]
@@ -73,7 +73,7 @@ model WeeklyReview {
 
 model ProtocolLock {
   id          Int      @id @default(autoincrement())
-  version     String   // e.g. v1.0
+  version     String // e.g. v1.0
   lockedUntil DateTime
   description String?
   createdAt   DateTime @default(now())
