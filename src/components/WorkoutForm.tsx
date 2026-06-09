@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import { ExerciseCard, SetData } from './ExerciseCard';
@@ -25,10 +25,12 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
   // Default workout type to LOWER
   const [workoutType, setWorkoutType] = useState<'LOWER' | 'UPPER'>('LOWER');
   
-  // Date input defaults to today in local YYYY-MM-DD
-  const [date, setDate] = useState<string>(() => {
-    return new Date().toLocaleDateString('en-CA');
-  });
+  // Date input defaults to empty during SSR, populated on mount to avoid hydration mismatch
+  const [date, setDate] = useState<string>('');
+
+  useEffect(() => {
+    setDate(new Date().toLocaleDateString('en-CA'));
+  }, []);
 
   const [notes, setNotes] = useState<string>('');
   

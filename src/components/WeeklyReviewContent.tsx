@@ -67,21 +67,25 @@ export function WeeklyReviewContent({
     };
   });
 
-  // Calculate default week containing today
-  const today = new Date();
-  let defaultWeekIndex = 0;
-  for (let i = 0; i < weeks.length; i++) {
-    if (today >= weeks[i].startDate && today <= weeks[i].endDate) {
-      defaultWeekIndex = i;
-      break;
-    }
-  }
-  // If today is past the protocol duration, default to the last week
-  if (today > weeks[weeks.length - 1].endDate) {
-    defaultWeekIndex = weeks.length - 1;
-  }
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(defaultWeekIndex);
+  useEffect(() => {
+    const today = new Date();
+    let computedIndex = 0;
+    for (let i = 0; i < weeks.length; i++) {
+      if (today >= weeks[i].startDate && today <= weeks[i].endDate) {
+        computedIndex = i;
+        break;
+      }
+    }
+    if (today > weeks[weeks.length - 1].endDate) {
+      computedIndex = weeks.length - 1;
+    }
+    setSelectedWeekIndex(computedIndex);
+    setIsMounted(true);
+  }, [weeks]);
+
   const selectedWeek = weeks[selectedWeekIndex];
 
   const [data, setData] = useState<WeeklyReviewResponse | null>(null);
@@ -96,6 +100,8 @@ export function WeeklyReviewContent({
 
   // Fetch data on week selection change
   useEffect(() => {
+    if (!isMounted) return;
+
     let active = true;
     async function fetchReview() {
       setLoading(true);
@@ -128,7 +134,7 @@ export function WeeklyReviewContent({
     return () => {
       active = false;
     };
-  }, [selectedWeek]);
+  }, [selectedWeek, isMounted]);
 
   const handleSave = async () => {
     setSaveStatus('saving');
