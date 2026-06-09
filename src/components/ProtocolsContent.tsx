@@ -175,8 +175,6 @@ const ProtocolCard = ({ p, isBest = false }: { p: ProtocolStats, isBest?: boolea
 export function ProtocolsContent() {
   const [protocols, setProtocols] = useState<ProtocolStats[]>([]);
   const [timeline, setTimeline] = useState<ProtocolTimelineEvent[]>([]);
-  const [compareA, setCompareA] = useState<string>('');
-  const [compareB, setCompareB] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -193,15 +191,6 @@ export function ProtocolsContent() {
         const timeData = await timeRes.json();
         setProtocols(data.protocols);
         setTimeline(timeData.timeline || []);
-
-        const evalP = data.protocols.filter((p: ProtocolStats) => p.observedOutcome?.observedOutcome !== 'Insufficient Data');
-        if (evalP.length >= 2) {
-          setCompareA(evalP[1].id.toString());
-          setCompareB(evalP[0].id.toString());
-        } else if (data.protocols.length >= 2) {
-          setCompareA(data.protocols[1].id.toString());
-          setCompareB(data.protocols[0].id.toString());
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading protocols');
       } finally {
@@ -244,12 +233,6 @@ export function ProtocolsContent() {
 
   const unevaluatedProtocols = protocols.filter(p => !p.observedOutcome || p.observedOutcome.observedOutcome === 'Insufficient Data');
 
-  const bestProtocol = evaluatedProtocols.length > 0 ? evaluatedProtocols[0] : null;
-  const otherEvaluated = evaluatedProtocols.length > 0 ? evaluatedProtocols.slice(1) : [];
-
-  const pA = protocols.find(p => p.id.toString() === compareA);
-  const pB = protocols.find(p => p.id.toString() === compareB);
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-border pb-4">
@@ -266,122 +249,23 @@ export function ProtocolsContent() {
           </div>
         ) : (
           <>
-            {pA && pB && protocols.length >= 2 && (
-              <section className="space-y-4 mb-10">
+            {evaluatedProtocols.length > 0 && (
+              <section className="space-y-4">
                 <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  Protocol Comparison
+                  Protocols with Sufficient Data
                 </h3>
-                <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm overflow-x-auto">
-                  <div className="flex gap-4 items-center mb-6">
-                    <select
-                      value={compareA}
-                      onChange={(e) => setCompareA(e.target.value)}
-                      className="bg-bg-input border border-border rounded-lg px-3 py-1.5 text-sm outline-none text-text-primary focus:border-text-secondary transition-colors"
-                    >
-                      {protocols.map(p => <option key={p.id} value={p.id}>v{p.version.replace('v', '')}</option>)}
-                    </select>
-                    <span className="text-text-tertiary text-sm font-semibold">vs</span>
-                    <select
-                      value={compareB}
-                      onChange={(e) => setCompareB(e.target.value)}
-                      className="bg-bg-input border border-border rounded-lg px-3 py-1.5 text-sm outline-none text-text-primary focus:border-text-secondary transition-colors"
-                    >
-                      {protocols.map(p => <option key={p.id} value={p.id}>v{p.version.replace('v', '')}</option>)}
-                    </select>
-                  </div>
-
-                  <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="pb-3 text-text-tertiary font-semibold uppercase tracking-wider">Metric</th>
-                        <th className="pb-3 text-text-primary font-bold px-4">v{pA.version.replace('v', '')}</th>
-                        <th className="pb-3 text-text-primary font-bold px-4">v{pB.version.replace('v', '')}</th>
-                        <th className="pb-3 text-text-tertiary font-semibold uppercase tracking-wider text-right">Δ (B - A)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      <tr>
-                        <td className="py-3 text-text-secondary">Days Active</td>
-                        <td className="py-3 px-4 font-mono">{pA.days}</td>
-                        <td className="py-3 px-4 font-mono">{pB.days}</td>
-                        <td className="py-3 text-right font-mono text-text-tertiary">{pB.days - pA.days > 0 ? '+' : ''}{pB.days - pA.days}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 text-text-secondary">Confidence</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            pA.observedOutcome?.confidence === 'High' ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' :
-                            pA.observedOutcome?.confidence === 'Medium' ? 'bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/20' :
-                            'bg-accent-red/10 text-accent-red border border-accent-red/20'
-                          }`}>
-                            {pA.observedOutcome?.confidence || 'Low'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            pB.observedOutcome?.confidence === 'High' ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' :
-                            pB.observedOutcome?.confidence === 'Medium' ? 'bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/20' :
-                            'bg-accent-red/10 text-accent-red border border-accent-red/20'
-                          }`}>
-                            {pB.observedOutcome?.confidence || 'Low'}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right"></td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 text-text-secondary">Recovery Score</td>
-                        <td className="py-3 px-4 font-mono">{pA.recoveryScore.toFixed(1)}</td>
-                        <td className="py-3 px-4 font-mono">{pB.recoveryScore.toFixed(1)}</td>
-                        <td className={`py-3 text-right font-mono font-bold ${pB.recoveryScore - pA.recoveryScore > 0 ? 'text-accent-green' : pB.recoveryScore - pA.recoveryScore < 0 ? 'text-accent-red' : 'text-text-tertiary'}`}>
-                          {pB.recoveryScore - pA.recoveryScore > 0 ? '+' : ''}{(pB.recoveryScore - pA.recoveryScore).toFixed(1)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 text-text-secondary">Avg Pain</td>
-                        <td className="py-3 px-4 font-mono">{pA.avgPain.toFixed(2)}</td>
-                        <td className="py-3 px-4 font-mono">{pB.avgPain.toFixed(2)}</td>
-                        <td className={`py-3 text-right font-mono font-bold ${pB.avgPain - pA.avgPain < 0 ? 'text-accent-green' : pB.avgPain - pA.avgPain > 0 ? 'text-accent-red' : 'text-text-tertiary'}`}>
-                          {pB.avgPain - pA.avgPain > 0 ? '+' : ''}{(pB.avgPain - pA.avgPain).toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 text-text-secondary">Avg Reflux</td>
-                        <td className="py-3 px-4 font-mono">{pA.avgReflux.toFixed(2)}</td>
-                        <td className="py-3 px-4 font-mono">{pB.avgReflux.toFixed(2)}</td>
-                        <td className={`py-3 text-right font-mono font-bold ${pB.avgReflux - pA.avgReflux < 0 ? 'text-accent-green' : pB.avgReflux - pA.avgReflux > 0 ? 'text-accent-red' : 'text-text-tertiary'}`}>
-                          {pB.avgReflux - pA.avgReflux > 0 ? '+' : ''}{(pB.avgReflux - pA.avgReflux).toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 text-text-secondary">Compliance</td>
-                        <td className="py-3 px-4 font-mono">{(pA.compliance * 100).toFixed(1)}%</td>
-                        <td className="py-3 px-4 font-mono">{(pB.compliance * 100).toFixed(1)}%</td>
-                        <td className={`py-3 text-right font-mono font-bold ${pB.compliance - pA.compliance > 0 ? 'text-accent-green' : pB.compliance - pA.compliance < 0 ? 'text-accent-red' : 'text-text-tertiary'}`}>
-                          {pB.compliance - pA.compliance > 0 ? '+' : ''}{((pB.compliance - pA.compliance) * 100).toFixed(1)}%
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div className="space-y-6">
+                  {evaluatedProtocols.map((p) => <ProtocolCard key={p.id} p={p} />)}
                 </div>
               </section>
             )}
 
-            {bestProtocol && (
-              <section className="space-y-4">
-                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  Top Intervention
-                </h3>
-                <ProtocolCard p={bestProtocol} isBest={true} />
-              </section>
-            )}
-
-            {(otherEvaluated.length > 0 || unevaluatedProtocols.length > 0) && (
+            {unevaluatedProtocols.length > 0 && (
               <section className="space-y-4">
                 <h3 className="text-lg font-bold text-text-primary">
-                  {bestProtocol ? 'Other Protocols' : 'All Protocols'}
+                  {evaluatedProtocols.length > 0 ? 'Other Protocols' : 'All Protocols'}
                 </h3>
                 <div className="space-y-6">
-                  {otherEvaluated.map((p) => <ProtocolCard key={p.id} p={p} />)}
                   {unevaluatedProtocols.map((p) => <ProtocolCard key={p.id} p={p} />)}
                 </div>
               </section>

@@ -55,16 +55,26 @@ async function verifyProtocolInvariants() {
   
   const validProtocolIds = new Set(allProtocols.map(p => p.id));
 
+  const changes = await prisma.protocolChange.findMany();
+
   for (const protocol of allProtocols) {
     if (!protocol.active && !protocol.endedAt) {
       throw new Error(`Protocol ${protocol.id} is inactive but has no endedAt timestamp.`);
+    }
+
+    // Every protocol except the original v1.0 must have a ProtocolChange where it is the toProtocol.
+    // This ensures clones and rollbacks don't silently bypass the timeline.
+    if (protocol.id !== 1 && protocol.version !== 'v1.0') {
+      const hasLineage = changes.some(c => c.toProtocolId === protocol.id);
+      if (!hasLineage) {
+        throw new Error(`Protocol ${protocol.id} (v${protocol.version}) lacks a ProtocolChange establishing its creation lineage.`);
+      }
     }
   }
 
   // protocolId is non-nullable in schema so database enforces that every log/workout has a protocolId
 
   // every ProtocolChange points to valid protocols
-  const changes = await prisma.protocolChange.findMany();
   for (const change of changes) {
     if (change.fromProtocolId && !validProtocolIds.has(change.fromProtocolId)) {
       throw new Error(`ProtocolChange ${change.id} points to invalid fromProtocolId ${change.fromProtocolId}`);
