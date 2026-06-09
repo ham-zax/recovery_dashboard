@@ -127,7 +127,7 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
   return (
     <div className="w-full h-48 bg-bg-card border border-border rounded-xl p-6">
       <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
-        Daily Compliance Trend
+        Daily Check-In Compliance Trend
       </h3>
       <div className="w-full h-[calc(100%-2rem)]">
         <Bar data={chartData} options={options} />

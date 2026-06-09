@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { isProtocolLocked } from '@/lib/lock';
 
 export async function GET() {
   try {
@@ -33,12 +34,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { settings, protocolLock } = body;
 
-    // Check if there is a current protocol lock active
-    const latestLock = await prisma.protocolLock.findFirst({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const isLocked = latestLock ? new Date(latestLock.lockedUntil) > new Date() : false;
+    const isLocked = await isProtocolLocked();
 
     // If locked, prevent changes to protocol settings
     if (isLocked && settings) {
@@ -64,8 +60,16 @@ export async function POST(request: NextRequest) {
       }
       
       if (attemptedChanges.length > 0) {
-        const formattedDate = latestLock
-          ? new Date(latestLock.lockedUntil).toLocaleDateString('en-US', {
+        const activeLock = await prisma.protocolLock.findFirst({
+          where: {
+            lockedUntil: {
+              gt: new Date(),
+            },
+          },
+          orderBy: { lockedUntil: 'desc' },
+        });
+        const formattedDate = activeLock
+          ? new Date(activeLock.lockedUntil).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
@@ -92,8 +96,17 @@ export async function POST(request: NextRequest) {
     if (protocolLock) {
       const newLockDate = new Date(protocolLock.lockedUntil);
       
+      const activeLock = await prisma.protocolLock.findFirst({
+        where: {
+          lockedUntil: {
+            gt: new Date(),
+          },
+        },
+        orderBy: { lockedUntil: 'desc' },
+      });
+
       // If currently locked, verify we aren't bypassing lock controls (like making it shorter)
-      if (latestLock && newLockDate < latestLock.lockedUntil) {
+      if (activeLock && newLockDate < activeLock.lockedUntil) {
         return NextResponse.json({
           error: 'Cannot shorten an existing protocol lock date.',
         }, { status: 400 });

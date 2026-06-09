@@ -112,6 +112,15 @@ async function runTests() {
     }
   }
 
+  // Verify JSON serialization round-trip safety (checking for Decimal/BigInt serialization issues)
+  const roundtripJson = JSON.parse(JSON.stringify(exportJson));
+  if (roundtripJson.exercises.length > 0) {
+    const firstEx = roundtripJson.exercises[0];
+    if (typeof firstEx.id !== 'number' || typeof firstEx.name !== 'string' || typeof firstEx.active !== 'boolean') {
+      throw new Error('Export JSON contains corrupted or non-serializable exercise records.');
+    }
+  }
+
   // Verify row counts match database exactly
   const dbLogsCount = await prisma.dailyLog.count();
   const dbWorkoutsCount = await prisma.workoutSession.count();
@@ -237,9 +246,9 @@ async function runTests() {
   console.log('✓ Protocol Lock Server-side Enforcement successfully verified.');
 
   // ----------------------------------------------------
-  // Test 5: Settings Mutation Concurrency Probe
+  // Test 5: Settings Mutation Write Integrity (Concurrency Probe)
   // ----------------------------------------------------
-  console.log('\n[Test 5] Probing mutation concurrency against settings endpoint...');
+  console.log('\n[Test 5] Probing mutation write integrity under concurrent settings writes...');
   
   // We send two concurrent updates to change settings
   const payload1 = {
@@ -282,15 +291,15 @@ async function runTests() {
   if (finalSittingTarget?.value !== '12' && finalSittingTarget?.value !== '15') {
     throw new Error(`Database left in inconsistent state after concurrent writes: ${finalSittingTarget?.value}`);
   }
-  console.log('✓ Concurrency Settings Mutation Probe executed successfully.');
+  console.log('✓ Concurrent Mutation Write Integrity Probe executed successfully.');
 
   console.log('\n--- ALL INVARIANT VERIFICATION TESTS PASSED SUCCESSFULLY ---');
 }
 
 async function main() {
-  console.log('Starting Next.js server in dev mode for verification tests...');
+  console.log('Starting Next.js production server for verification tests...');
   
-  const devServer = spawn('npx', ['next', 'dev', '-p', String(TEST_PORT)], {
+  const devServer = spawn('npx', ['next', 'start', '-p', String(TEST_PORT)], {
     stdio: 'ignore', // Suppress output to keep verification log clean
     shell: true,
   });
