@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, subDays, format, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
+import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 
 interface DailyLog {
   id: number;
@@ -219,16 +220,18 @@ export async function getDashboardData(days: number) {
     metrics: {
       pain: {
         value: `${currentAvgPain.toFixed(1)}/10`,
+        stateLabel: getPainState(currentAvgPain),
         raw: currentAvgPain,
         ...painStats,
       },
       walking: {
-        value: `${totalWalks} walk${totalWalks === 1 ? '' : 's'}`,
+        value: `${totalWalks} logs`,
         raw: totalWalks,
         ...walkingStats,
       },
       strength: {
         value: `${totalWorkouts} / ${expectedWorkouts}`,
+        stateLabel: getStrengthState(totalWorkouts, expectedWorkouts),
         raw: totalWorkouts,
         ...strengthStats,
       },
@@ -239,11 +242,13 @@ export async function getDashboardData(days: number) {
       },
       reflux: {
         value: `${currentAvgReflux.toFixed(1)}/10`,
+        stateLabel: getRefluxState(currentAvgReflux),
         raw: currentAvgReflux,
         ...refluxStats,
       },
       sittingBreaks: {
         value: `${currentAvgSittingActual.toFixed(1)} / ${currentAvgSittingTarget.toFixed(1)}`,
+        stateLabel: currentAvgSittingActual >= currentAvgSittingTarget ? 'Optimal' : 'Suboptimal',
         raw: currentAvgSittingActual,
         ...sittingBreaksStats,
       },

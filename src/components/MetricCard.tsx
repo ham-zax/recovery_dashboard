@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 interface MetricCardProps {
   label: string;
   value: string;
+  stateLabel?: string;
   delta?: string | null;
   trend?: 'up' | 'down' | 'same' | null;
   accentColor?: string;
@@ -12,6 +13,7 @@ interface MetricCardProps {
 export function MetricCard({
   label,
   value,
+  stateLabel,
   delta,
   trend,
   accentColor,
@@ -50,14 +52,21 @@ export function MetricCard({
         {accentColor && (
           <div className={`w-1.5 h-1.5 rounded-full ${dotColor[accentColor] ?? ''}`} />
         )}
-        <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">
+        <span className="text-metric-label">
           {label}
         </span>
       </div>
 
       {/* Value */}
-      <div className="text-[22px] font-bold text-text-primary font-mono tracking-tight mt-2">
-        {value}
+      <div className="flex items-baseline gap-2 mt-2">
+        {stateLabel ? (
+          <>
+            <span className="text-metric-value text-text-primary">{stateLabel}</span>
+            <span className="text-[14px] text-text-tertiary font-mono">{value}</span>
+          </>
+        ) : (
+          <span className="text-metric-value text-text-primary">{value}</span>
+        )}
       </div>
 
       {/* Delta */}

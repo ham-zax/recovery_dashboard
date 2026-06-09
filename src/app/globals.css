@@ -46,27 +46,54 @@ html {
 
 body {
   background-color: var(--color-bg-primary);
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(129, 140, 248, 0.02) 0px, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(56, 189, 248, 0.01) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(167, 139, 250, 0.02) 0px, transparent 50%);
+  background-image: radial-gradient(circle at top center, rgba(99, 102, 241, 0.04), transparent 50%);
   color: var(--color-text-primary);
   overscroll-behavior: contain;
   min-height: 100vh;
 }
 
+/* Typography utilities */
+@utility text-hero-score {
+  font-size: 72px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+@utility text-hero-status {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@utility text-metric-value {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+@utility text-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-tertiary);
+}
+
+@utility text-section-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
 /* Premium Linear / Obsidian Glass Cards */
 .linear-card {
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
   transition: border-color 200ms ease;
 }
 
 .linear-card:hover {
-  border-color: var(--color-border-focus);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 /* Scrollbar — minimal */

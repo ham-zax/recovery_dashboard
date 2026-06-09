@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getRecoveryStatus } from '@/lib/score';
+import { getPainState, getRefluxState, getStrengthState } from '@/lib/metricInterpretation';
 import { TrendChart } from './charts/TrendChart';
 import { MetricCard } from './MetricCard';
 import { WeeklyReviewResponse } from '@/lib/reviewData';
@@ -272,27 +274,38 @@ export function WeeklyReviewContent({
         <div className="lg:col-span-2 space-y-6">
           {/* Stats Summary Panel */}
           {data && (
-            <div className="bg-bg-card border border-border rounded-xl p-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-border/50">
-                <div>
-                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Week Summary
-                  </h3>
-                  <div className="mt-2 flex items-baseline gap-3">
-                    <span className="text-xl font-bold text-text-primary">Protocol Response:</span>
-                    <span className={`text-xl font-bold ${responseColor}`}>
-                      {protocolResponse}
-                    </span>
-                  </div>
-                  {data.currentStats.daysWithScore < 4 && (
-                    <p className="text-sm text-text-secondary mt-2 font-mono">
-                      Coverage: {data.currentStats.daysWithScore}/7 days (Need at least 4 days for reliable assessment)
-                    </p>
-                  )}
+            <div>
+              <div className="mb-10">
+                <h3 className="text-section-header mb-3">
+                  Protocol Response
+                </h3>
+                <div className={`text-[28px] font-bold ${responseColor}`}>
+                  {protocolResponse}
                 </div>
+                
+                {data.currentStats.daysWithScore >= 4 ? (
+                  <div className="mt-5 text-[15px] text-text-secondary leading-relaxed space-y-3">
+                    <p>
+                      {data.currentStats.avgPain < data.prevStats.avgPain ? 'Pain has decreased. ' : data.currentStats.avgPain > data.prevStats.avgPain ? 'Pain has increased. ' : 'Pain is stable. '}
+                      {data.currentStats.avgReflux < data.prevStats.avgReflux ? 'Reflux has improved. ' : data.currentStats.avgReflux > data.prevStats.avgReflux ? 'Reflux has worsened. ' : 'Reflux is stable. '}
+                      {data.currentStats.totalWalks > data.prevStats.totalWalks ? 'Walking consistency increased.' : 'Walking consistency maintained.'}
+                    </p>
+                    <p className="text-text-primary font-medium">
+                      {protocolResponse === 'Positive' 
+                        ? 'The protocol appears effective. Continue current regimen.' 
+                        : protocolResponse === 'Neutral' 
+                        ? 'The protocol shows mixed results. Monitor triggers closely.' 
+                        : 'The protocol is underperforming. Prioritize rest and adherence.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-5 text-[15px] text-text-secondary leading-relaxed">
+                    Coverage: {data.currentStats.daysWithScore}/7 days. Need at least 4 days for a reliable assessment.
+                  </div>
+                )}
               </div>
 
-              <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
+              <h3 className="text-section-header mb-4">
                 Evidence
               </h3>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -300,6 +313,7 @@ export function WeeklyReviewContent({
                 <MetricCard
                   label="Recovery Average"
                   value={data.currentStats.daysWithScore >= 4 ? `${data.currentStats.recoveryScore}` : '--'}
+                  stateLabel={data.currentStats.daysWithScore >= 4 ? getRecoveryStatus(data.currentStats.recoveryScore) : undefined}
                   delta={data.currentStats.daysWithScore >= 4 ? getDeltaStr(data.currentStats.recoveryScore, data.prevStats.recoveryScore, false) : ''}
                   trend={data.currentStats.daysWithScore >= 4 ? getTrend(data.currentStats.recoveryScore, data.prevStats.recoveryScore) : 'same'}
                   accentColor="accent-purple"
@@ -308,7 +322,8 @@ export function WeeklyReviewContent({
                 {/* Pain */}
                 <MetricCard
                   label="Pain"
-                  value={data.currentStats.avgPain.toFixed(1)}
+                  value={`${data.currentStats.avgPain.toFixed(1)}/10`}
+                  stateLabel={getPainState(data.currentStats.avgPain)}
                   delta={getDeltaStr(data.currentStats.avgPain, data.prevStats.avgPain)}
                   trend={getTrend(data.currentStats.avgPain, data.prevStats.avgPain)}
                   accentColor="accent-red"
@@ -317,7 +332,8 @@ export function WeeklyReviewContent({
                 {/* Reflux */}
                 <MetricCard
                   label="Reflux"
-                  value={data.currentStats.avgReflux.toFixed(1)}
+                  value={`${data.currentStats.avgReflux.toFixed(1)}/10`}
+                  stateLabel={getRefluxState(data.currentStats.avgReflux)}
                   delta={getDeltaStr(data.currentStats.avgReflux, data.prevStats.avgReflux)}
                   trend={getTrend(data.currentStats.avgReflux, data.prevStats.avgReflux)}
                   accentColor="accent-amber"
@@ -337,7 +353,8 @@ export function WeeklyReviewContent({
                 {/* Workouts */}
                 <MetricCard
                   label="Workouts"
-                  value={`${data.currentStats.totalWorkouts} logged`}
+                  value={`${data.currentStats.totalWorkouts} logs`}
+                  stateLabel={getStrengthState(data.currentStats.totalWorkouts, data.currentStats.expectedWorkouts)}
                   delta={getDeltaStr(data.currentStats.totalWorkouts, data.prevStats.totalWorkouts)}
                   trend={getTrend(data.currentStats.totalWorkouts, data.prevStats.totalWorkouts)}
                   accentColor="accent-blue"
@@ -356,8 +373,8 @@ export function WeeklyReviewContent({
           )}
 
           {/* Trend Chart */}
-          <div className="bg-bg-card border border-border rounded-xl p-6">
-            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
+          <div className="mt-8">
+            <h3 className="text-section-header mb-4">
               7-Day Trend (Pain vs Walking)
             </h3>
             <div className="h-[280px]">
@@ -374,10 +391,10 @@ export function WeeklyReviewContent({
 
         {/* Right Side: Reflections and Notes */}
         <div className="space-y-6">
-          <div className="bg-bg-card border border-border rounded-xl p-6 flex flex-col justify-between min-h-[480px]">
+          <div className="flex flex-col justify-between min-h-[480px]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                 <div>
-                  <h3 className="text-[15px] font-semibold text-text-primary tracking-tight">Reflections</h3>
+                  <h3 className="text-section-header mb-2 tracking-tight">Reflections</h3>
                   <p className="text-xs text-text-tertiary mt-1 max-w-sm leading-relaxed">
                     Poor results + poor compliance = <strong className="text-accent-red font-semibold">fix compliance first</strong>.<br/>
                     Poor results + good compliance for 8–12 weeks = <strong className="text-accent-amber font-semibold">investigate further</strong>.
@@ -388,7 +405,7 @@ export function WeeklyReviewContent({
             <div className="space-y-5">
               {/* What improved */}
               <div>
-                <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider mb-1.5">
+                <label className="block text-metric-label mb-1.5">
                   What improved?
                 </label>
                 <textarea
@@ -396,13 +413,13 @@ export function WeeklyReviewContent({
                   onChange={(e) => setImproved(e.target.value)}
                   placeholder="e.g. Scapular pain decreased during workouts..."
                   rows={3}
-                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
 
               {/* What worsened */}
               <div>
-                <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider mb-1.5">
+                <label className="block text-metric-label mb-1.5">
                   What worsened?
                 </label>
                 <textarea
@@ -410,13 +427,13 @@ export function WeeklyReviewContent({
                   onChange={(e) => setWorsened(e.target.value)}
                   placeholder="e.g. Neck stiffness felt higher after long sitting blocks..."
                   rows={3}
-                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
 
               {/* Next week's focus */}
               <div>
-                <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider mb-1.5">
+                <label className="block text-metric-label mb-1.5">
                   Next week&apos;s focus
                 </label>
                 <textarea
@@ -424,7 +441,7 @@ export function WeeklyReviewContent({
                   onChange={(e) => setNextWeekFocus(e.target.value)}
                   placeholder="e.g. Stand up every 45 mins. Keep walking streak..."
                   rows={3}
-                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
+                  className="w-full bg-bg-card rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:ring-1 focus:ring-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
             </div>

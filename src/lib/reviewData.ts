@@ -37,6 +37,7 @@ interface ComputedStats {
   avgSittingCompliance: number;
   recoveryScore: number;
   daysWithScore: number;
+  expectedWorkouts: number;
 }
 
 export async function computeStatsForPeriod(
@@ -121,6 +122,7 @@ export async function computeStatsForPeriod(
     avgSittingCompliance,
     recoveryScore,
     daysWithScore,
+    expectedWorkouts,
   };
 }
 

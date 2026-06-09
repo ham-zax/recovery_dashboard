@@ -12,6 +12,7 @@ import { RecoveryState } from '@/lib/score';
 
 interface MetricInfo {
   value: string;
+  stateLabel?: string;
   raw: number;
   delta: string | null;
   trend: 'up' | 'down' | 'same' | null;
@@ -148,11 +149,12 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
 
           {/* Supporting Drivers */}
           <section className="w-full">
-            <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Supporting Drivers</h2>
+            <h2 className="text-section-header mb-4">Supporting Drivers</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <MetricCard
                 label="Compliance"
                 value={data.metrics.compliance.value}
+                stateLabel={data.metrics.compliance.stateLabel}
                 delta={data.metrics.compliance.delta}
                 trend={data.metrics.compliance.trend}
                 accentColor="accent-green"
@@ -160,6 +162,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
               <MetricCard
                 label="Walking"
                 value={data.metrics.walking.value}
+                stateLabel={data.metrics.walking.stateLabel}
                 delta={data.metrics.walking.delta}
                 trend={data.metrics.walking.trend}
                 accentColor="accent-blue"
@@ -167,6 +170,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
               <MetricCard
                 label="Strength"
                 value={data.metrics.strength.value}
+                stateLabel={data.metrics.strength.stateLabel}
                 delta={data.metrics.strength.delta}
                 trend={data.metrics.strength.trend}
                 accentColor="accent-green"
@@ -174,6 +178,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
               <MetricCard
                 label="Reflux"
                 value={data.metrics.reflux.value}
+                stateLabel={data.metrics.reflux.stateLabel}
                 delta={data.metrics.reflux.delta}
                 trend={data.metrics.reflux.trend}
                 accentColor="accent-amber"
@@ -181,6 +186,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
               <MetricCard
                 label="Pain"
                 value={data.metrics.pain.value}
+                stateLabel={data.metrics.pain.stateLabel}
                 delta={data.metrics.pain.delta}
                 trend={data.metrics.pain.trend}
                 accentColor="accent-red"
@@ -191,7 +197,7 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
           {/* Analytics */}
           <section className="w-full space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Analytics</h2>
+              <h2 className="text-section-header">Analytics</h2>
               <SegmentedControl
                 options={[
                   { label: '7d', value: 7 },

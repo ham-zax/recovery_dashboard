@@ -49,6 +49,7 @@ export interface RecoveryState {
   score: number | null;
   status: RecoveryStatus;
   message: string;
+  narrative: string;
 }
 
 export interface DailyMetrics {
@@ -57,6 +58,24 @@ export interface DailyMetrics {
   walkedToday: boolean;
   sittingBreaksTarget: number;
   sittingBreaksActual: number;
+}
+
+export function getRecoveryStatus(score: number): RecoveryStatus {
+  if (score < 50) return 'Needs Attention';
+  if (score < 75) return 'Recovering';
+  return 'Ready';
+}
+
+export function getRecoveryMessage(score: number): string {
+  if (score < 50) return 'Prioritize rest and recovery';
+  if (score < 75) return 'Moderate activity recommended';
+  return 'Ready for training';
+}
+
+export function getRecoveryNarrative(score: number): string {
+  if (score < 50) return 'Recovery is compromised. Prioritize rest and adherence to your protocol.';
+  if (score < 75) return 'Recovery is stable but suboptimal. Monitor your triggers today.';
+  return 'Recovery is trending upward. Continue your current protocol.';
 }
 
 export function calculateDailyRecovery(
@@ -69,12 +88,12 @@ export function calculateDailyRecovery(
     return {
       score: null,
       status: 'Need Check-in',
-      message: "Log today's data to see your score"
+      message: "Log today's data to see your score",
+      narrative: "Complete your daily check-ins to generate a recovery analysis."
     };
   }
 
   // Component calculations (0-100)
-  // Pain/Reflux: 0 is best (100%), 10 is worst (0%)
   const painScore = Math.max(0, 100 - (log.pain * 10));
   const refluxScore = Math.max(0, 100 - (log.reflux * 10));
   const walkScore = log.walkedToday ? 100 : 0;
@@ -88,7 +107,6 @@ export function calculateDailyRecovery(
   if (strengthScheduled) {
     strengthScore = strengthCompleted ? 100 : 0;
   } else {
-    // Rest day: redistribute strength weight to other metrics
     const remainingWeight = activeWeights.pain + activeWeights.reflux + activeWeights.walking + activeWeights.compliance;
     if (remainingWeight > 0) {
       const multiplier = 1 + (activeWeights.strength / remainingWeight);
@@ -100,15 +118,14 @@ export function calculateDailyRecovery(
     activeWeights.strength = 0;
   }
 
-  // Total raw score
   const totalWeight = activeWeights.pain + activeWeights.reflux + activeWeights.walking + activeWeights.compliance + activeWeights.strength;
   
-  // Guard against 0 total weight
   if (totalWeight === 0) {
     return {
       score: null,
       status: 'Insufficient Data',
-      message: 'Invalid weight configuration'
+      message: 'Invalid weight configuration',
+      narrative: 'Unable to calculate score due to invalid settings.'
     };
   }
 
@@ -118,20 +135,14 @@ export function calculateDailyRecovery(
     walkScore * activeWeights.walking +
     complianceScore * activeWeights.compliance +
     strengthScore * activeWeights.strength
-  ) / totalWeight; // Divide by actual total weight in case it doesn't sum to 100 exactly
+  ) / totalWeight;
 
   const score = Math.min(100, Math.max(0, Math.round(raw)));
 
-  let status: RecoveryStatus = 'Ready';
-  let message = 'Ready for training';
-
-  if (score < 50) {
-    status = 'Needs Attention';
-    message = 'Prioritize rest and recovery';
-  } else if (score < 75) {
-    status = 'Recovering';
-    message = 'Moderate activity recommended';
-  }
-
-  return { score, status, message };
+  return { 
+    score, 
+    status: getRecoveryStatus(score), 
+    message: getRecoveryMessage(score), 
+    narrative: getRecoveryNarrative(score) 
+  };
 }
