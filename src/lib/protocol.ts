@@ -2,13 +2,14 @@ import { prisma } from './prisma';
 import { isProtocolLocked } from './lock';
 import { Prisma } from '../generated/prisma';
 
+export const DEFAULT_WORKOUT_SCHEDULE = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
+
 export function parseWorkoutSchedule(jsonString: string | null | undefined): Record<string, string> {
-  const defaultSchedule = { mon: 'REST', tue: 'REST', wed: 'REST', thu: 'REST', fri: 'REST', sat: 'REST', sun: 'REST' };
-  if (!jsonString) return defaultSchedule;
+  if (!jsonString) return DEFAULT_WORKOUT_SCHEDULE;
   try {
     return JSON.parse(jsonString);
   } catch {
-    return defaultSchedule;
+    return DEFAULT_WORKOUT_SCHEDULE;
   }
 }
 
@@ -65,30 +66,35 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput, rea
     throw new Error('Protocol is currently locked and cannot be modified.');
   }
 
-  const active = await getActiveProtocol();
-
-  // If the active protocol has no logs yet, we can safely mutate it
-  const logCount = await prisma.dailyLog.count({ where: { protocolId: active.id } });
-  
-  if (logCount === 0) {
-    return prisma.protocol.update({
-      where: { id: active.id },
-      data,
-    });
-  }
-
   // Otherwise, create a new version
   // Run in transaction to ensure atomic switch
   const result = await prisma.$transaction(async (tx) => {
+    const active = await tx.protocol.findFirst({ where: { active: true } });
+    if (!active) throw new Error('No active protocol found');
+
+    // If the active protocol has no logs yet, we can safely mutate it
+    const logCount = await tx.dailyLog.count({ where: { protocolId: active.id } });
+    
+    if (logCount === 0) {
+      return tx.protocol.update({
+        where: { id: active.id },
+        data,
+      });
+    }
+
     const nextVersion = await getNextVersion(tx);
     // Close current
-    await tx.protocol.update({
-      where: { id: active.id },
+    const updated = await tx.protocol.updateMany({
+      where: { id: active.id, active: true },
       data: {
         active: false,
         endedAt: new Date(),
       }
     });
+
+    if (updated.count === 0) {
+      throw new Error('Protocol was modified concurrently. Please try again.');
+    }
 
     // Create new
     const newProtocol = await tx.protocol.create({
@@ -149,11 +155,11 @@ export async function activateProtocol(id: number) {
   return prisma.$transaction([
     prisma.protocol.updateMany({ 
       where: { active: true },
-      data: { active: false } 
+      data: { active: false, endedAt: new Date() } 
     }),
     prisma.protocol.update({ 
       where: { id }, 
-      data: { active: true } 
+      data: { active: true, startedAt: new Date(), endedAt: null } 
     })
   ]);
 }
@@ -166,16 +172,21 @@ export async function cloneProtocol(sourceId: number, reason?: string, notes?: s
   const source = await prisma.protocol.findUnique({ where: { id: sourceId } });
   if (!source) throw new Error('Source protocol not found');
 
-  const active = await getActiveProtocol();
-
   return prisma.$transaction(async (tx) => {
+    const active = await tx.protocol.findFirst({ where: { active: true } });
+    if (!active) throw new Error('No active protocol found');
+
     const nextVersion = await getNextVersion(tx);
 
     // Close current
-    await tx.protocol.updateMany({
-      where: { active: true },
+    const updated = await tx.protocol.updateMany({
+      where: { id: active.id, active: true },
       data: { active: false, endedAt: new Date() }
     });
+
+    if (updated.count === 0) {
+      throw new Error('Protocol was modified concurrently. Please try again.');
+    }
 
     // Create new
     const newProtocol = await tx.protocol.create({

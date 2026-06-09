@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { calculateDailyRecovery, DEFAULT_WEIGHTS, validateWeights, ScoreWeights } from './score';
 import { startOfDay } from 'date-fns';
 import { DailyLog, WorkoutSession, Protocol } from '../generated/prisma';
+import { parseWorkoutSchedule } from './protocol';
 
 export interface ImpactMetrics {
   avgPain: number;
@@ -143,11 +144,7 @@ export async function calculateProtocolOutcome(protocol: Protocol): Promise<Prot
     };
   }
 
-  const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-  let schedule = defaultSchedule;
-  if (protocol.workoutSchedule) {
-    try { schedule = JSON.parse(protocol.workoutSchedule); } catch {}
-  }
+  const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
   let weights = DEFAULT_WEIGHTS;
   if (protocol.recoveryWeights) {
@@ -202,45 +199,14 @@ export async function calculateProtocolOutcome(protocol: Protocol): Promise<Prot
   };
 }
 
-export async function calculateProtocolOutcomeBatch(protocols: Protocol[]): Promise<Map<number, ProtocolOutcome>> {
+export async function calculateProtocolOutcomeBatch(protocols: (Protocol & { logs?: DailyLog[], workouts?: WorkoutSession[] })[]): Promise<Map<number, ProtocolOutcome>> {
   const result = new Map<number, ProtocolOutcome>();
   
-  // To avoid N+1 queries we fetch everything up front.
   if (protocols.length === 0) return result;
   
-  const protocolIds = protocols.map(p => p.id);
-  const allLogs = await prisma.dailyLog.findMany({
-    where: { protocolId: { in: protocolIds } },
-    orderBy: { date: 'asc' },
-  });
-  
-  const allWorkouts = await prisma.workoutSession.findMany({
-    where: { protocolId: { in: protocolIds } },
-    orderBy: { date: 'asc' },
-  });
-
-  const logsByProtocol = new Map<number, DailyLog[]>();
-  const workoutsByProtocol = new Map<number, WorkoutSession[]>();
-  for (const p of protocols) {
-    logsByProtocol.set(p.id, []);
-    workoutsByProtocol.set(p.id, []);
-  }
-
-  for (const log of allLogs) {
-    if (log.protocolId && logsByProtocol.has(log.protocolId)) {
-      logsByProtocol.get(log.protocolId)!.push(log);
-    }
-  }
-
-  for (const workout of allWorkouts) {
-    if (workout.protocolId && workoutsByProtocol.has(workout.protocolId)) {
-      workoutsByProtocol.get(workout.protocolId)!.push(workout);
-    }
-  }
-
   for (const protocol of protocols) {
-    const logs = logsByProtocol.get(protocol.id) || [];
-    const workouts = workoutsByProtocol.get(protocol.id) || [];
+    const logs = protocol.logs || [];
+    const workouts = protocol.workouts || [];
 
     if (logs.length < MIN_PROTOCOL_DAYS) {
       result.set(protocol.id, {
@@ -258,11 +224,7 @@ export async function calculateProtocolOutcomeBatch(protocols: Protocol[]): Prom
       continue;
     }
 
-    const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-    let schedule = defaultSchedule;
-    if (protocol.workoutSchedule) {
-      try { schedule = JSON.parse(protocol.workoutSchedule); } catch {}
-    }
+    const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
     let weights = DEFAULT_WEIGHTS;
     if (protocol.recoveryWeights) {

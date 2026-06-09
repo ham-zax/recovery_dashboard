@@ -4,7 +4,7 @@ import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights 
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
 import { eventProvider } from './recoveryEvents';
-import { getActiveProtocol } from './protocol';
+import { getActiveProtocol, parseWorkoutSchedule } from './protocol';
 
 interface DailyLog {
   id: number;
@@ -48,8 +48,8 @@ function countScheduledWorkouts(startDate: Date, endDate: Date, schedule: Record
 
 export async function getDashboardData(days: number) {
   const today = startOfDay(new Date());
-  const limitDate = subDays(today, days);
-  const prevLimitDate = subDays(today, days * 2);
+  const limitDate = subDays(today, days - 1);
+  const prevLimitDate = subDays(today, days * 2 - 1);
 
   // Fetch protocol for weights
   const protocol = await getActiveProtocol();
@@ -64,13 +64,7 @@ export async function getDashboardData(days: number) {
   }
 
   // Parse workout schedule
-  const defaultSchedule: Record<string, string> = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-  let schedule = defaultSchedule;
-  if (protocol.workoutSchedule) {
-    try {
-      schedule = JSON.parse(protocol.workoutSchedule);
-    } catch {}
-  }
+  const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
   // Fetch current period logs
   const currentLogs = await prisma.dailyLog.findMany({
@@ -222,7 +216,7 @@ export async function getDashboardData(days: number) {
       pain: log ? log.pain : null,
       walked: log ? (log.walkedToday ? 1 : 0) : null,
       reflux: log ? log.reflux : null,
-      compliance: log ? 100 : 0,
+      compliance: log ? Math.min(100, Math.round((log.sittingBreaksActual / (log.protocol.sittingTarget > 0 ? log.protocol.sittingTarget : 10)) * 100)) : 0,
     });
   }
 
@@ -232,8 +226,22 @@ export async function getDashboardData(days: number) {
     compliance: generateComplianceInsight(complianceStats.trend, currentAvgSittingCompliance * 100),
   };
 
-  // Generate point-in-time Recovery Events
-  const events = eventProvider.getEvents(currentLogs, currentWorkouts, protocolChanges);
+  // Calculate historical seed state efficiently without unbounded relationship queries
+  const pastLogsForSeed = await prisma.dailyLog.findMany({ 
+    where: { date: { lt: limitDate } },
+    select: { id: true, date: true, walkedToday: true, pain: true, reflux: true },
+    orderBy: { date: 'asc' } 
+  });
+  const pastWorkoutsForSeed = await prisma.workoutSession.findMany({ 
+    where: { date: { lt: limitDate } },
+    select: { id: true, date: true },
+    orderBy: { date: 'asc' } 
+  });
+
+  const seedState = eventProvider.computeSeedState(pastLogsForSeed, pastWorkoutsForSeed);
+
+  // Generate point-in-time Recovery Events ONLY for the current window
+  const events = eventProvider.getEvents(currentLogs, currentWorkouts, protocolChanges, seedState);
 
   return {
     recoveryState,

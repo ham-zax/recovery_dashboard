@@ -1,5 +1,5 @@
 import { getPainState, getRefluxState } from './metricInterpretation';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 
 interface DailyLogBase {
   id: number;
@@ -41,14 +41,22 @@ export function formatDayKey(date: string | Date): string {
   return format(new Date(date), 'yyyy-MM-dd');
 }
 
+export interface EventSeedState {
+  walkStreak: number;
+  consecutiveInactiveDays: number;
+  recentActivityWindow: boolean[];
+  wasHighVolumeLowPainState: boolean;
+}
+
 export interface RecoveryEventProvider {
-  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges?: ProtocolChangeBase[]): RecoveryEvent[];
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges?: ProtocolChangeBase[], seedState?: EventSeedState): RecoveryEvent[];
+  computeSeedState(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): EventSeedState;
   selectDashboardEvents(events: RecoveryEvent[], maxCount?: number): RecoveryEvent[];
   selectTimelineEvents(events: RecoveryEvent[]): RecoveryEvent[];
 }
 
 export const RuntimeEventProvider: RecoveryEventProvider = {
-  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges: ProtocolChangeBase[] = []): RecoveryEvent[] {
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges: ProtocolChangeBase[] = [], seedState?: EventSeedState): RecoveryEvent[] {
     const events: RecoveryEvent[] = [];
     
     const sortedLogs = [...logs].sort(
@@ -57,10 +65,10 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
 
   const workoutDates = new Set(workouts.map(w => formatDayKey(w.date)));
 
-  let walkStreak = 0;
-  let consecutiveInactiveDays = 0;
-  const recentActivityWindow: boolean[] = [];
-  let wasHighVolumeLowPainState = false;
+  let walkStreak = seedState?.walkStreak ?? 0;
+  let consecutiveInactiveDays = seedState?.consecutiveInactiveDays ?? 0;
+  const recentActivityWindow: boolean[] = seedState?.recentActivityWindow ? [...seedState.recentActivityWindow] : [];
+  let wasHighVolumeLowPainState = seedState?.wasHighVolumeLowPainState ?? false;
 
   for (let i = 0; i < sortedLogs.length; i++) {
     const log = sortedLogs[i];
@@ -68,15 +76,35 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
     const logDate = formatDayKey(log.date);
     const dayEvents: RecoveryEvent[] = [];
 
+    let isConsecutive = true;
+    if (prevLog) {
+      const daysDiff = Math.abs(differenceInCalendarDays(new Date(log.date), new Date(prevLog.date)));
+      if (daysDiff > 1) {
+        walkStreak = 0; // Break the streak
+        consecutiveInactiveDays += (daysDiff - 1);
+        for (let d = 0; d < Math.min(daysDiff - 1, 5); d++) {
+          recentActivityWindow.push(false);
+          if (recentActivityWindow.length > 5) recentActivityWindow.shift();
+        }
+        isConsecutive = false;
+      }
+    }
+
     // Track Activity Volume
     const hasWorkout = workoutDates.has(logDate);
     const isActiveDay = log.walkedToday || hasWorkout;
+    
+    // Preserve the inactive day count before today's activity resets it
+    const previousConsecutiveInactiveDays = consecutiveInactiveDays;
 
     if (isActiveDay) {
       consecutiveInactiveDays = 0;
     } else {
       consecutiveInactiveDays++;
     }
+
+    // For event evaluation: if they resumed activity today, we check if they were inactive *before* today
+    const effectiveInactiveDaysForEvaluation = isActiveDay ? previousConsecutiveInactiveDays : consecutiveInactiveDays;
 
     recentActivityWindow.push(isActiveDay);
     if (recentActivityWindow.length > 5) {
@@ -105,7 +133,7 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
       walkStreak = 0;
     }
 
-    if (prevLog) {
+    if (prevLog && isConsecutive) {
       // 2. Pain State Transitions
       const currentPainState = getPainState(log.pain);
       const prevPainState = getPainState(prevLog.pain);
@@ -123,7 +151,7 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
 
       // Cross-Metric: Pattern A (Deconditioning Flare)
       // High priority because it represents a negative behavioral outcome
-      if ((painDelta >= 2 || (currentPainState === 'High' && prevPainState !== 'High')) && consecutiveInactiveDays >= 3) {
+      if ((painDelta >= 2 || (currentPainState === 'High' && prevPainState !== 'High')) && effectiveInactiveDaysForEvaluation >= 3) {
         dayEvents.push({ id: `pain-inactive-flare-${logDate}`, type: 'pain_inactive_flare', category: 'pain', headline: 'Pain increased during a period of reduced activity', date: logDate, severity: 'negative', importance: 'major', priority: 105, timelineEligible: true, dashboardEligible: true });
       }
 
@@ -200,6 +228,69 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
   }
 
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+
+  computeSeedState(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): EventSeedState {
+    const sortedLogs = [...logs].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const workoutDates = new Set(workouts.map(w => formatDayKey(w.date)));
+
+    let walkStreak = 0;
+    let consecutiveInactiveDays = 0;
+    const recentActivityWindow: boolean[] = [];
+    let wasHighVolumeLowPainState = false;
+
+    for (let i = 0; i < sortedLogs.length; i++) {
+      const log = sortedLogs[i];
+      const prevLog = i > 0 ? sortedLogs[i - 1] : null;
+      const logDate = formatDayKey(log.date);
+
+      if (prevLog) {
+        const daysDiff = Math.abs(differenceInCalendarDays(new Date(log.date), new Date(prevLog.date)));
+        if (daysDiff > 1) {
+          walkStreak = 0;
+          consecutiveInactiveDays += (daysDiff - 1);
+          for (let d = 0; d < Math.min(daysDiff - 1, 5); d++) {
+            recentActivityWindow.push(false);
+            if (recentActivityWindow.length > 5) recentActivityWindow.shift();
+          }
+        }
+      }
+
+      const hasWorkout = workoutDates.has(logDate);
+      const isActiveDay = log.walkedToday || hasWorkout;
+
+      if (isActiveDay) {
+        consecutiveInactiveDays = 0;
+      } else {
+        consecutiveInactiveDays++;
+      }
+
+      recentActivityWindow.push(isActiveDay);
+      if (recentActivityWindow.length > 5) {
+        recentActivityWindow.shift();
+      }
+
+      const activeDaysInWindow = recentActivityWindow.filter(Boolean).length;
+      const isHighVolumeWindow = recentActivityWindow.length === 5 && activeDaysInWindow >= 4;
+      const currentPainStateForDay = getPainState(log.pain);
+      wasHighVolumeLowPainState = isHighVolumeWindow && currentPainStateForDay === 'Low';
+      
+      if (log.walkedToday) {
+        walkStreak++;
+      } else {
+        walkStreak = 0;
+      }
+    }
+
+    return {
+      walkStreak,
+      consecutiveInactiveDays,
+      recentActivityWindow,
+      wasHighVolumeLowPainState
+    };
   },
 
   selectDashboardEvents(events: RecoveryEvent[], maxCount: number = 3): RecoveryEvent[] {

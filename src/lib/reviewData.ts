@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 import { eventProvider, formatDayKey } from './recoveryEvents';
-import { getActiveProtocol } from './protocol';
+import { getActiveProtocol, parseWorkoutSchedule } from './protocol';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -155,7 +155,8 @@ export interface WeeklyReviewResponse {
 }
 
 export async function getWeeklyReviewData(weekStartingStr: string): Promise<WeeklyReviewResponse> {
-  const weekStarting = startOfDay(new Date(weekStartingStr));
+  const [y, m, d] = weekStartingStr.split('T')[0].split('-').map(Number);
+  const weekStarting = new Date(y, m - 1, d);
   const weekEnding = endOfDay(addDays(weekStarting, 6));
 
   const prevWeekStarting = subDays(weekStarting, 7);
@@ -173,13 +174,7 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
     }
   }
 
-  const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-  let schedule = defaultSchedule;
-  if (protocol.workoutSchedule) {
-    try {
-      schedule = JSON.parse(protocol.workoutSchedule);
-    } catch {}
-  }
+  const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
   // Compute stats for current and previous week
   const currentStats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule);
