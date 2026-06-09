@@ -1,16 +1,22 @@
+import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.resolve(__dirname, '..', 'dev.db');
+
+const url = process.env.DATABASE_URL || `file:${path.resolve(__dirname, '..', 'dev.db')}`;
+const authToken = process.env.TOKEN;
 
 const adapter = new PrismaLibSql({
-  url: `file:${dbPath}`,
+  url: url,
+  authToken: authToken,
 });
 
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ 
+  adapter 
+});
 
 async function main() {
   // Seed exercises
