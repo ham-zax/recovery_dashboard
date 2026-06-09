@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface Exercise {
@@ -30,6 +31,7 @@ interface WorkoutSchedule {
 }
 
 export function SettingsContent() {
+  const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [lock, setLock] = useState<{ version: string; lockedUntil: string; description: string } | null>(null);
@@ -175,6 +177,7 @@ export function SettingsContent() {
 
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
+      router.refresh();
       loadAll();
     } catch (err) {
       setSaveStatus('error');
@@ -209,6 +212,7 @@ export function SettingsContent() {
 
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
+      router.refresh();
       loadAll();
     } catch (err) {
       setSaveStatus('error');
@@ -233,6 +237,7 @@ export function SettingsContent() {
       if (!res.ok) throw new Error('Failed to add exercise');
 
       setNewExerciseName('');
+      router.refresh();
       loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error adding exercise');
@@ -260,6 +265,7 @@ export function SettingsContent() {
       if (!res.ok) throw new Error('Failed to update exercise');
 
       setEditingExerciseId(null);
+      router.refresh();
       loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error saving exercise');
@@ -275,6 +281,7 @@ export function SettingsContent() {
 
       if (!res.ok) throw new Error('Failed to deactivate exercise');
 
+      router.refresh();
       loadAll();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error deactivating exercise');

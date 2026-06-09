@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "tsx scripts/verify-dashboard.ts",
+    "verify:speed": "tsx scripts/verify-navigation-speed.ts",
     "test": "npm run lint && npm run build && npm run verify",
     "postinstall": "prisma generate"
   },
@@ -32,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "puppeteer-core": "^25.1.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4",

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TrendChart } from './charts/TrendChart';
@@ -20,6 +21,7 @@ export function WeeklyReviewContent({
   initialWeekIndex,
   initialData,
 }: WeeklyReviewContentProps) {
+  const router = useRouter();
   // Generate all 12 weeks (memoized to avoid reconstruction on every reflection input keystroke)
   const weeks = useMemo(() => {
     const protocolStartDate = new Date(protocolStartDateStr);
@@ -140,6 +142,7 @@ export function WeeklyReviewContent({
 
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
+      router.refresh();
     } catch {
       setSaveStatus('error');
     }
