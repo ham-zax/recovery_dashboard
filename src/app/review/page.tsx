@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { WeeklyReviewContent } from '@/components/WeeklyReviewContent';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReviewPage() {
   const startDateSetting = await prisma.setting.findUnique({
     where: { key: 'protocol_start_date' },

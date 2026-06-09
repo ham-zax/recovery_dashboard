@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { prisma } from '@/lib/prisma';
 import { CheckInForm } from '@/components/CheckInForm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CheckInPage() {
   const today = startOfDay(new Date());
 

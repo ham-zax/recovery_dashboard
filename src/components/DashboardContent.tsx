@@ -38,15 +38,23 @@ interface DashboardResponse {
 
 interface DashboardContentProps {
   protocolStrip?: React.ReactNode;
+  initialData?: DashboardResponse;
 }
 
-export function DashboardContent({ protocolStrip }: DashboardContentProps) {
+export function DashboardContent({ protocolStrip, initialData }: DashboardContentProps) {
   const [days, setDays] = useState<number>(7);
-  const [data, setData] = useState<DashboardResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<DashboardResponse | null>(initialData ?? null);
+  const [loading, setLoading] = useState<boolean>(!initialData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If it's the initial 7d view and we already have the initialData, skip fetch
+    if (days === 7 && initialData) {
+      setData(initialData);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     async function fetchDashboard() {
       setLoading(true);
@@ -75,7 +83,7 @@ export function DashboardContent({ protocolStrip }: DashboardContentProps) {
     return () => {
       active = false;
     };
-  }, [days]);
+  }, [days, initialData]);
 
   if (error) {
     return (

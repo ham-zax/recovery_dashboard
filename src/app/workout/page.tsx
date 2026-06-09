@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { WorkoutForm } from '@/components/WorkoutForm';
 import { SetData } from '@/components/ExerciseCard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function WorkoutPage() {
   // Fetch active exercises from DB
   const exercises = await prisma.exercise.findMany({
