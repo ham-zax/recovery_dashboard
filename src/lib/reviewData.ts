@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
-import { generateRecoveryEvents, RecoveryEvent, formatDayKey, selectTimelineEvents } from './recoveryEvents';
+import { eventProvider, formatDayKey } from './recoveryEvents';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -233,8 +233,8 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
     orderBy: { date: 'asc' },
   });
   
-  const allEvents = generateRecoveryEvents(priorLogs, workouts);
-  const timelineEvents = selectTimelineEvents(allEvents);
+  const allEvents = eventProvider.getEvents(priorLogs, workouts);
+  const timelineEvents = eventProvider.selectTimelineEvents(allEvents);
 
   const eventsByDate = new Map<string, typeof timelineEvents>();
   for (const e of timelineEvents) {

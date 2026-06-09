@@ -35,18 +35,17 @@ export function formatDayKey(date: string | Date): string {
   return format(new Date(date), 'yyyy-MM-dd');
 }
 
-/**
- * Generates point-in-time semantic events from raw daily logs and workouts.
- * This is the central source of truth for interpreting historical events,
- * consumed by the Dashboard, Review, and Timeline.
- */
-export function generateRecoveryEvents(
-  logs: DailyLogBase[],
-  workouts: WorkoutSessionBase[]
-): RecoveryEvent[] {
-  const events: RecoveryEvent[] = [];
-  
-  const sortedLogs = [...logs].sort(
+export interface RecoveryEventProvider {
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): RecoveryEvent[];
+  selectDashboardEvents(events: RecoveryEvent[], maxCount?: number): RecoveryEvent[];
+  selectTimelineEvents(events: RecoveryEvent[]): RecoveryEvent[];
+}
+
+export const RuntimeEventProvider: RecoveryEventProvider = {
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): RecoveryEvent[] {
+    const events: RecoveryEvent[] = [];
+    
+    const sortedLogs = [...logs].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -120,26 +119,30 @@ export function generateRecoveryEvents(
     });
   }
 
-  return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
 
-export function selectDashboardEvents(events: RecoveryEvent[], maxCount: number = 3): RecoveryEvent[] {
-  // 1. Filter to dashboard-eligible
-  const eligible = events.filter(e => e.dashboardEligible);
+  selectDashboardEvents(events: RecoveryEvent[], maxCount: number = 3): RecoveryEvent[] {
+    // 1. Filter to dashboard-eligible
+    const eligible = events.filter(e => e.dashboardEligible);
 
-  return [...eligible].sort((a, b) => {
-    // 1. Sort by Priority
-    if (a.priority !== b.priority) {
-      return b.priority - a.priority;
-    }
-    // 2. Fallback to newest first
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  }).slice(0, maxCount);
-}
+    return [...eligible].sort((a, b) => {
+      // 1. Sort by Priority
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority;
+      }
+      // 2. Fallback to newest first
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }).slice(0, maxCount);
+  },
 
-export function selectTimelineEvents(events: RecoveryEvent[]): RecoveryEvent[] {
-  // Timeline requires high recall and chronological fidelity
-  return events
-    .filter(e => e.timelineEligible)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
+  selectTimelineEvents(events: RecoveryEvent[]): RecoveryEvent[] {
+    // Timeline requires high recall and chronological fidelity
+    return events
+      .filter(e => e.timelineEligible)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+};
+
+// Consumers import this singleton, completely decoupling them from the concrete implementation
+export const eventProvider: RecoveryEventProvider = RuntimeEventProvider;

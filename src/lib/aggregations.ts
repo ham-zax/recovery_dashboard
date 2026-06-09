@@ -3,7 +3,7 @@ import { startOfDay, subDays, format, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
-import { generateRecoveryEvents, selectDashboardEvents } from './recoveryEvents';
+import { eventProvider } from './recoveryEvents';
 
 interface DailyLog {
   id: number;
@@ -223,7 +223,7 @@ export async function getDashboardData(days: number) {
   };
 
   // Generate point-in-time Recovery Events
-  const events = generateRecoveryEvents(currentLogs, currentWorkouts);
+  const events = eventProvider.getEvents(currentLogs, currentWorkouts);
 
   return {
     recoveryState,
@@ -265,7 +265,7 @@ export async function getDashboardData(days: number) {
       },
     },
     insights,
-    events: selectDashboardEvents(events, 3), // return top 3 most important dashboard-eligible events
+    events: eventProvider.selectDashboardEvents(events, 3), // return top 3 most important dashboard-eligible events
     chartData,
   };
 }
