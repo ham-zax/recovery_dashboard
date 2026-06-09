@@ -36,6 +36,7 @@ interface ProtocolState {
   walkingTarget: number;
   sittingTarget: number;
   recoveryWeights?: ScoreWeights;
+  workoutSchedule?: WorkoutSchedule;
   active: boolean;
 }
 
@@ -63,6 +64,10 @@ export function SettingsContent() {
   const [lockDate, setLockDate] = useState<string>('');
   const [lockDescription, setLockDescription] = useState<string>('Execute one protocol consistently.');
 
+  // Protocol Change state
+  const [changeReason, setChangeReason] = useState<string>('');
+  const [changeNotes, setChangeNotes] = useState<string>('');
+
   // Parse state helper
   const getWeights = (): ScoreWeights => {
     if (protocol && protocol.recoveryWeights) {
@@ -72,12 +77,8 @@ export function SettingsContent() {
   };
 
   const getSchedule = (): WorkoutSchedule => {
-    try {
-      if (settings.workout_schedule) {
-        return JSON.parse(settings.workout_schedule);
-      }
-    } catch {
-      // fallback
+    if (protocol && protocol.workoutSchedule) {
+      return protocol.workoutSchedule;
     }
     return { mon: 'REST', tue: 'REST', wed: 'REST', thu: 'REST', fri: 'REST', sat: 'REST', sun: 'REST' };
   };
@@ -158,7 +159,10 @@ export function SettingsContent() {
   const handleUpdateSchedule = (day: keyof WorkoutSchedule, value: string) => {
     const currentSchedule = getSchedule();
     currentSchedule[day] = value;
-    handleUpdateSetting('workout_schedule', JSON.stringify(currentSchedule));
+    setProtocol((prev: ProtocolState | null) => prev ? ({
+      ...prev,
+      workoutSchedule: currentSchedule
+    }) : prev);
   };
 
   const handleSaveSettings = async () => {
@@ -174,10 +178,11 @@ export function SettingsContent() {
     setSaveStatus('saving');
     setSaveErrorMessage('');
     try {
+      const payloadProtocol = protocol ? { ...protocol, changeReason, changeNotes } : undefined;
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings, protocol }),
+        body: JSON.stringify({ settings, protocol: payloadProtocol }),
       });
 
       if (!res.ok) {
@@ -186,6 +191,8 @@ export function SettingsContent() {
       }
 
       setSaveStatus('saved');
+      setChangeReason('');
+      setChangeNotes('');
       setTimeout(() => setSaveStatus('idle'), 3000);
       router.refresh();
       loadAll();
@@ -431,6 +438,46 @@ export function SettingsContent() {
               </div>
             </div>
           </div>
+
+          {/* Change Rationale */}
+          {!locked && (
+            <div className="bg-bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-5 py-4 border-b border-border flex items-center gap-3 bg-bg-card-hover/30">
+                <Pencil className="w-5 h-5 text-text-primary" />
+                <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+                  Change Rationale (Optional)
+                </h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  If saving any protocol changes below (targets, weights, or schedule), document why you are making the change. This provides context when reviewing historical protocol impacts.
+                </p>
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider">
+                    Reason
+                  </label>
+                  <input
+                    type="text"
+                    value={changeReason}
+                    onChange={(e) => setChangeReason(e.target.value)}
+                    className="w-full bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors"
+                    placeholder="e.g. Pain plateaued, reducing sitting target."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider">
+                    Detailed Notes
+                  </label>
+                  <textarea
+                    value={changeNotes}
+                    onChange={(e) => setChangeNotes(e.target.value)}
+                    className="w-full bg-bg-input border border-border rounded-xl p-4 min-h-[80px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors resize-y"
+                    placeholder="e.g. Adding an extra REST day because recovery score has been consistently below 50. Focusing on walking instead."
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Daily Log Targets */}
           <div className="bg-bg-card border border-border rounded-2xl overflow-hidden shadow-sm">

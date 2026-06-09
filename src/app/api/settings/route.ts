@@ -25,6 +25,7 @@ export async function GET() {
         walkingTarget: protocol.walkingTarget,
         sittingTarget: protocol.sittingTarget,
         recoveryWeights: protocol.recoveryWeights ? JSON.parse(protocol.recoveryWeights) : undefined,
+        workoutSchedule: protocol.workoutSchedule ? JSON.parse(protocol.workoutSchedule) : undefined,
         active: protocol.active,
       },
       protocolLock: latestLock ? {
@@ -53,7 +54,8 @@ export async function POST(request: NextRequest) {
           sittingTarget: protocol.sittingTarget,
           walkingTarget: protocol.walkingTarget,
           recoveryWeights: protocol.recoveryWeights ? JSON.stringify(protocol.recoveryWeights) : undefined,
-        });
+          workoutSchedule: protocol.workoutSchedule ? JSON.stringify(protocol.workoutSchedule) : undefined,
+        }, protocol.changeReason, protocol.changeNotes);
       } catch (e) {
         return NextResponse.json({ error: (e as Error).message }, { status: 403 });
       }

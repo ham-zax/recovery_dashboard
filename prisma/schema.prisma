@@ -88,7 +88,8 @@ model Protocol {
   version         String           @unique
   walkingTarget   Int              @default(1)
   sittingTarget   Int              @default(10)
-  recoveryWeights String? // Stored as JSON string
+  recoveryWeights String?          // Stored as JSON string
+  workoutSchedule String           @default("{\"mon\":\"LOWER\",\"tue\":\"UPPER\",\"wed\":\"REST\",\"thu\":\"LOWER\",\"fri\":\"UPPER\",\"sat\":\"REST\",\"sun\":\"REST\"}")
   active          Boolean          @default(false)
   startedAt       DateTime         @default(now())
   endedAt         DateTime?
@@ -96,6 +97,22 @@ model Protocol {
   updatedAt       DateTime         @updatedAt
   logs            DailyLog[]
   workouts        WorkoutSession[]
+
+  changesFrom     ProtocolChange[] @relation("FromProtocol")
+  changesTo       ProtocolChange[] @relation("ToProtocol")
+}
+
+model ProtocolChange {
+  id             Int      @id @default(autoincrement())
+  fromProtocolId Int
+  toProtocolId   Int
+  changedAt      DateTime @default(now())
+  reason         String?
+  notes          String?  // Document detailed reasoning behind configuration shifts
+  changes        String   // Stored as JSON string
+
+  fromProtocol   Protocol @relation("FromProtocol", fields: [fromProtocolId], references: [id])
+  toProtocol     Protocol @relation("ToProtocol", fields: [toProtocolId], references: [id])
 }
 
 model Setting {

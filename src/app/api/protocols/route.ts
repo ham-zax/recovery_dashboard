@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { calculateDailyRecovery, validateWeights, DEFAULT_WEIGHTS } from '@/lib/score';
+import { calculateProtocolImpactsBatch } from '@/lib/protocolImpact';
 import { startOfDay } from 'date-fns';
 
 export async function GET() {
@@ -17,17 +18,13 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const settings = await prisma.setting.findMany();
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
-
-    const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-    const schedule = settingsMap.has('workout_schedule')
-      ? JSON.parse(settingsMap.get('workout_schedule')!)
-      : defaultSchedule;
+    const defaultSchedule: Record<string, string> = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
 
     const dayKeyMap: Record<number, string> = {
       0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
     };
+
+    const impacts = await calculateProtocolImpactsBatch(protocols);
 
     const protocolStats = protocols.map(protocol => {
       const logs = protocol.logs;
@@ -43,6 +40,7 @@ export async function GET() {
           avgReflux: 0,
           compliance: 0,
           recoveryScore: 0,
+          impact: null,
         };
       }
 
@@ -59,6 +57,13 @@ export async function GET() {
       if (protocol.recoveryWeights) {
         try {
           weights = validateWeights(JSON.parse(protocol.recoveryWeights));
+        } catch {}
+      }
+
+      let schedule = defaultSchedule;
+      if (protocol.workoutSchedule) {
+        try {
+          schedule = JSON.parse(protocol.workoutSchedule);
         } catch {}
       }
 
@@ -89,6 +94,8 @@ export async function GET() {
 
       const recoveryScore = scoredDays > 0 ? totalScore / scoredDays : 0;
 
+      const impact = impacts.get(protocol.id) || null;
+
       return {
         id: protocol.id,
         version: protocol.version,
@@ -100,6 +107,7 @@ export async function GET() {
         avgReflux,
         compliance,
         recoveryScore,
+        impact,
       };
     });
 

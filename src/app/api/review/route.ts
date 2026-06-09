@@ -34,14 +34,13 @@ export async function POST(request: NextRequest) {
     const weekStarting = startOfDay(new Date(weekStartingStr));
     const weekEnding = endOfDay(addDays(weekStarting, 6));
 
-    // Fetch settings for weights and schedule
-    const settings = await prisma.setting.findMany();
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+    const { getActiveProtocol } = await import('@/lib/protocol');
+    const protocol = await getActiveProtocol();
 
     let weights: ScoreWeights = DEFAULT_WEIGHTS;
-    if (settingsMap.has('recovery_score_weights')) {
+    if (protocol && protocol.recoveryWeights) {
       try {
-        const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+        const parsed = JSON.parse(protocol.recoveryWeights);
         weights = validateWeights(parsed);
       } catch {
         // fallback
@@ -49,9 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-    const schedule = settingsMap.has('workout_schedule')
-      ? JSON.parse(settingsMap.get('workout_schedule')!)
-      : defaultSchedule;
+    let schedule = defaultSchedule;
+    if (protocol && protocol.workoutSchedule) {
+      try {
+        schedule = JSON.parse(protocol.workoutSchedule);
+      } catch {}
+    }
 
     // Recompute current stats to save snapshot
     const stats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule);

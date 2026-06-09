@@ -29,7 +29,7 @@ export async function getActiveProtocol() {
   return protocol;
 }
 
-export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput) {
+export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput, reason?: string, notes?: string) {
   if (await isProtocolLocked()) {
     throw new Error('Protocol is currently locked and cannot be modified.');
   }
@@ -65,7 +65,7 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput) {
     });
 
     // Create new
-    return tx.protocol.create({
+    const newProtocol = await tx.protocol.create({
       data: {
         version: nextVersion,
         active: true,
@@ -73,8 +73,43 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput) {
         walkingTarget: data.walkingTarget !== undefined ? (data.walkingTarget as number) : active.walkingTarget,
         sittingTarget: data.sittingTarget !== undefined ? (data.sittingTarget as number) : active.sittingTarget,
         recoveryWeights: data.recoveryWeights !== undefined ? (data.recoveryWeights as string) : active.recoveryWeights,
+        workoutSchedule: data.workoutSchedule !== undefined ? (data.workoutSchedule as string) : active.workoutSchedule,
       }
     });
+
+    // Compute changes
+    const changes: Record<string, unknown> = {};
+    if (data.walkingTarget !== undefined && data.walkingTarget !== active.walkingTarget) {
+      changes.walkingTarget = { from: active.walkingTarget, to: data.walkingTarget };
+    }
+    if (data.sittingTarget !== undefined && data.sittingTarget !== active.sittingTarget) {
+      changes.sittingTarget = { from: active.sittingTarget, to: data.sittingTarget };
+    }
+    if (data.recoveryWeights !== undefined && data.recoveryWeights !== active.recoveryWeights) {
+      changes.recoveryWeights = { 
+        from: active.recoveryWeights ? JSON.parse(active.recoveryWeights) : null,
+        to: JSON.parse(data.recoveryWeights as string)
+      };
+    }
+    if (data.workoutSchedule !== undefined && data.workoutSchedule !== active.workoutSchedule) {
+      changes.workoutSchedule = {
+        from: JSON.parse(active.workoutSchedule),
+        to: JSON.parse(data.workoutSchedule as string)
+      };
+    }
+
+    // Create ProtocolChange
+    await tx.protocolChange.create({
+      data: {
+        fromProtocolId: active.id,
+        toProtocolId: newProtocol.id,
+        changes: JSON.stringify(changes),
+        reason: reason || null,
+        notes: notes || null,
+      }
+    });
+
+    return newProtocol;
   });
 
   return result;

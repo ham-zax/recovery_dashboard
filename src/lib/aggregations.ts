@@ -51,10 +51,6 @@ export async function getDashboardData(days: number) {
   const limitDate = subDays(today, days);
   const prevLimitDate = subDays(today, days * 2);
 
-  // Fetch settings
-  const settings = await prisma.setting.findMany();
-  const settingsMap = new Map(settings.map(s => [s.key, s.value]));
-
   // Fetch protocol for weights
   const protocol = await getActiveProtocol();
   let weights: ScoreWeights = DEFAULT_WEIGHTS;
@@ -68,10 +64,13 @@ export async function getDashboardData(days: number) {
   }
 
   // Parse workout schedule
-  const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-  const schedule = settingsMap.has('workout_schedule')
-    ? JSON.parse(settingsMap.get('workout_schedule')!)
-    : defaultSchedule;
+  const defaultSchedule: Record<string, string> = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
+  let schedule = defaultSchedule;
+  if (protocol.workoutSchedule) {
+    try {
+      schedule = JSON.parse(protocol.workoutSchedule);
+    } catch {}
+  }
 
   // Fetch current period logs
   const currentLogs = await prisma.dailyLog.findMany({
@@ -110,6 +109,14 @@ export async function getDashboardData(days: number) {
       date: {
         gte: prevLimitDate,
         lt: limitDate,
+      },
+    },
+  });
+
+  const protocolChanges = await prisma.protocolChange.findMany({
+    where: {
+      changedAt: {
+        gte: limitDate,
       },
     },
   });
@@ -226,7 +233,7 @@ export async function getDashboardData(days: number) {
   };
 
   // Generate point-in-time Recovery Events
-  const events = eventProvider.getEvents(currentLogs, currentWorkouts);
+  const events = eventProvider.getEvents(currentLogs, currentWorkouts, protocolChanges);
 
   return {
     recoveryState,

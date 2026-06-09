@@ -161,10 +161,6 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
   const prevWeekStarting = subDays(weekStarting, 7);
   const prevWeekEnding = endOfDay(subDays(weekStarting, 1));
 
-  // Fetch settings for weights and schedule
-  const settings = await prisma.setting.findMany();
-  const settingsMap = new Map(settings.map(s => [s.key, s.value]));
-
   const protocol = await getActiveProtocol();
 
   let weights: ScoreWeights = DEFAULT_WEIGHTS;
@@ -178,9 +174,12 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
   }
 
   const defaultSchedule = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
-  const schedule = settingsMap.has('workout_schedule')
-    ? JSON.parse(settingsMap.get('workout_schedule')!)
-    : defaultSchedule;
+  let schedule = defaultSchedule;
+  if (protocol.workoutSchedule) {
+    try {
+      schedule = JSON.parse(protocol.workoutSchedule);
+    } catch {}
+  }
 
   // Compute stats for current and previous week
   const currentStats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule);
@@ -239,10 +238,22 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
         lte: weekEnding,
       },
     },
+    include: {
+      protocol: true,
+    },
     orderBy: { date: 'asc' },
   });
   
-  const allEvents = eventProvider.getEvents(priorLogs, workouts);
+  const protocolChanges = await prisma.protocolChange.findMany({
+    where: {
+      changedAt: {
+        gte: prevWeekStarting,
+        lte: weekEnding,
+      },
+    },
+  });
+
+  const allEvents = eventProvider.getEvents(priorLogs, workouts, protocolChanges);
   const timelineEvents = eventProvider.selectTimelineEvents(allEvents);
 
   const eventsByDate = new Map<string, typeof timelineEvents>();

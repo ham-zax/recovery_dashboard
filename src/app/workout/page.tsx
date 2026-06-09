@@ -43,10 +43,9 @@ export default async function WorkoutPage() {
     }
   }
 
-  // Fetch the workout schedule setting
-  const scheduleSetting = await prisma.setting.findUnique({
-    where: { key: 'workout_schedule' },
-  });
+  // Fetch the workout schedule from active protocol
+  const { getActiveProtocol } = await import('@/lib/protocol');
+  const protocol = await getActiveProtocol();
 
   let schedule: Record<string, string> = {
     mon: 'REST',
@@ -58,11 +57,11 @@ export default async function WorkoutPage() {
     sun: 'REST',
   };
 
-  if (scheduleSetting) {
+  if (protocol && protocol.workoutSchedule) {
     try {
-      schedule = JSON.parse(scheduleSetting.value);
+      schedule = JSON.parse(protocol.workoutSchedule);
     } catch (e) {
-      console.error('Error parsing workout_schedule setting:', e);
+      console.error('Error parsing workout schedule from protocol:', e);
     }
   }
 

@@ -253,12 +253,12 @@ async function runTests() {
   // We send two concurrent updates to change settings
   const payload1 = {
     settings: {
-      sitting_breaks_target: '12',
+      protocol_start_date: '2025-01-01',
     },
   };
   const payload2 = {
     settings: {
-      sitting_breaks_target: '15',
+      protocol_start_date: '2025-01-02',
     },
   };
 
@@ -283,13 +283,13 @@ async function runTests() {
   }
 
   // Assert database final state is consistent (either 12 or 15)
-  const finalSittingTarget = await prisma.setting.findUnique({
-    where: { key: 'sitting_breaks_target' },
+  const finalSetting = await prisma.setting.findUnique({
+    where: { key: 'protocol_start_date' },
   });
   
-  console.log(`  - Final setting value in database: ${finalSittingTarget?.value}`);
-  if (finalSittingTarget?.value !== '12' && finalSittingTarget?.value !== '15') {
-    throw new Error(`Database left in inconsistent state after concurrent writes: ${finalSittingTarget?.value}`);
+  console.log(`  - Final setting value in database: ${finalSetting?.value}`);
+  if (finalSetting?.value !== '2025-01-01' && finalSetting?.value !== '2025-01-02') {
+    throw new Error(`Database left in inconsistent state after concurrent writes: ${finalSetting?.value}`);
   }
   console.log('✓ Concurrent Mutation Write Integrity Probe executed successfully.');
 

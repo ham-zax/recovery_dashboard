@@ -14,6 +14,12 @@ interface WorkoutSessionBase {
   date: string | Date;
 }
 
+export interface ProtocolChangeBase {
+  id: number;
+  changedAt: string | Date;
+  changes: string;
+}
+
 export type EventSeverity = 'positive' | 'negative' | 'neutral';
 export type EventImportance = 'major' | 'medium' | 'minor';
 export type EventCategory = 'pain' | 'reflux' | 'activity' | 'recovery';
@@ -36,13 +42,13 @@ export function formatDayKey(date: string | Date): string {
 }
 
 export interface RecoveryEventProvider {
-  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): RecoveryEvent[];
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges?: ProtocolChangeBase[]): RecoveryEvent[];
   selectDashboardEvents(events: RecoveryEvent[], maxCount?: number): RecoveryEvent[];
   selectTimelineEvents(events: RecoveryEvent[]): RecoveryEvent[];
 }
 
 export const RuntimeEventProvider: RecoveryEventProvider = {
-  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[]): RecoveryEvent[] {
+  getEvents(logs: DailyLogBase[], workouts: WorkoutSessionBase[], protocolChanges: ProtocolChangeBase[] = []): RecoveryEvent[] {
     const events: RecoveryEvent[] = [];
     
     const sortedLogs = [...logs].sort(
@@ -154,6 +160,43 @@ export const RuntimeEventProvider: RecoveryEventProvider = {
     });
 
     wasHighVolumeLowPainState = isCurrentlyHighVolumeLowPain;
+  }
+
+  // 5. Protocol Changes
+  for (const pc of protocolChanges) {
+    const changeDate = formatDayKey(pc.changedAt);
+    let headline = 'Protocol updated';
+    try {
+      const parsed = JSON.parse(pc.changes);
+      const keys = Object.keys(parsed);
+      
+      if (keys.length === 1) {
+        const key = keys[0];
+        const val = parsed[key];
+        if (key === 'sittingTarget') {
+          headline = `Sitting breaks target changed from ${val.from} to ${val.to}`;
+        } else if (key === 'walkingTarget') {
+          headline = `Walking target changed from ${val.from} to ${val.to}`;
+        } else if (key === 'recoveryWeights') {
+          headline = `Recovery score weights updated`;
+        }
+      } else if (keys.length > 1) {
+        headline = 'Protocol updated: multiple targets adjusted';
+      }
+    } catch {}
+
+    events.push({
+      id: `protocol-change-${pc.id}`,
+      type: 'protocol_change',
+      category: 'recovery',
+      headline,
+      date: changeDate,
+      severity: 'neutral',
+      importance: 'major',
+      priority: 20, // Protocol changes are context, not primary dashboard outcomes
+      timelineEligible: true,
+      dashboardEligible: false,
+    });
   }
 
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
