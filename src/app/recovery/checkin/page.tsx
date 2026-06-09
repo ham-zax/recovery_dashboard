@@ -44,67 +44,51 @@ export default async function CheckInPage() {
     : null;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-md mx-auto px-4 pb-24 pt-4">
       {/* Page Title */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-text-primary font-mono">Daily Check-In</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Log your metrics to track compliance and progress daily.
+      <div className="mb-8">
+        <h2 className="text-[28px] font-bold tracking-tight text-text-primary leading-tight">
+          Daily Check-In
+        </h2>
+        <p className="text-text-secondary text-[17px] mt-1 font-medium">
+          {format(new Date(), 'EEEE, MMMM d')}
         </p>
       </div>
 
-      {/* Main check-in card */}
-      <div className="bg-bg-card rounded-xl border border-border p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center justify-between">
-          <span>Today&apos;s Entry</span>
-          {todayCheckIn && (
-            <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20">
-              Completed
-            </span>
-          )}
-        </h3>
-
+      <div className="space-y-8">
         <CheckInForm
           initialData={initialData}
           sittingBreaksTarget={sittingBreaksTarget}
         />
-      </div>
 
-      {/* Previous 3 days card */}
-      <div className="bg-bg-card rounded-xl border border-border p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Previous 3 Days</h3>
-        {previousLogs.length === 0 ? (
-          <p className="text-text-secondary text-sm italic font-mono">No entries for previous days.</p>
-        ) : (
-          <div className="space-y-4">
-            {previousLogs.map((log) => {
-              const formattedDate = format(new Date(log.date), 'MMM d');
-              
-              const parts = [
-                `Pain ${log.pain}`,
-                `Sleep ${log.sleepHours}h`,
-                `Breaks ${log.sittingBreaksActual}/${log.sittingBreaksTarget}`
-              ];
-              if (log.walkedToday) parts.push(`✓ Walk`);
-              if (log.strengthToday) parts.push(`✓ Strength`);
-
-              return (
-                <div key={log.id} className="border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="text-text-secondary font-mono">
-                      <span className="text-text-primary font-medium">{formattedDate}</span>: {parts.join(' · ')}
+        {/* Previous 3 days card */}
+        <div className="pt-4">
+          <h3 className="text-[17px] font-semibold text-text-primary mb-3 pl-1">Recent</h3>
+          <div className="bg-bg-card rounded-2xl border border-border overflow-hidden">
+            {previousLogs.length === 0 ? (
+              <p className="text-text-secondary text-[15px] p-4 text-center">No entries for previous days.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {previousLogs.map((log) => {
+                  const formattedDate = format(new Date(log.date), 'MMM d');
+                  
+                  return (
+                    <div key={log.id} className="p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-primary font-medium">{formattedDate}</span>
+                        <div className="text-text-secondary text-[15px] flex items-center gap-1.5">
+                          <span>Pain {log.pain}</span>
+                          <span className="text-text-tertiary">·</span>
+                          <span>{log.sleepHours}h</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  {log.notes && (
-                    <div className="text-xs text-text-tertiary font-mono italic mt-1 pl-4 border-l border-border max-w-full truncate">
-                      &ldquo;{log.notes}&rdquo;
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

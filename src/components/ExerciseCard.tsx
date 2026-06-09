@@ -1,5 +1,7 @@
 'use client';
 
+import { Plus, Minus, Trash2 } from 'lucide-react';
+
 export interface SetData {
   weight: number | null;
   reps: number;
@@ -12,6 +14,62 @@ interface ExerciseCardProps {
   lastSession?: SetData[] | null;
   onChange: (sets: SetData[]) => void;
 }
+
+interface StepperInputProps {
+  id?: string;
+  value: number | string | null;
+  onChange: (val: string) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  placeholder?: string;
+}
+
+const StepperInput = ({ id, value, onChange, min = 0, max, step = 1, placeholder }: StepperInputProps) => {
+  const handleMinus = () => {
+    const current = value === null || value === '' ? min : Number(value);
+    const next = Math.max(min, current - step);
+    const fixedNext = Number(next.toFixed(2));
+    onChange(fixedNext.toString());
+  };
+  
+  const handlePlus = () => {
+    const current = value === null || value === '' ? min : Number(value);
+    const next = max !== undefined ? Math.min(max, current + step) : current + step;
+    const fixedNext = Number(next.toFixed(2));
+    onChange(fixedNext.toString());
+  };
+
+  return (
+    <div className="flex items-center h-[44px] bg-bg-input border border-border rounded-lg overflow-hidden focus-within:border-border-focus">
+      <button 
+        type="button" 
+        onClick={handleMinus}
+        className="px-3 h-full text-text-secondary hover:text-text-primary bg-bg-card border-r border-border active:bg-bg-card-hover touch-manipulation"
+      >
+        <Minus size={14} />
+      </button>
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        placeholder={placeholder}
+        value={value !== null && value !== undefined ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 w-full text-center bg-transparent text-text-primary font-mono text-sm outline-none placeholder:text-text-tertiary/50"
+      />
+      <button 
+        type="button" 
+        onClick={handlePlus}
+        className="px-3 h-full text-text-secondary hover:text-text-primary bg-bg-card border-l border-border active:bg-bg-card-hover touch-manipulation"
+      >
+        <Plus size={14} />
+      </button>
+    </div>
+  );
+};
 
 export function ExerciseCard({ exercise, sets, lastSession, onChange }: ExerciseCardProps) {
   
@@ -69,83 +127,76 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
   };
 
   return (
-    <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-border-focus transition-colors">
+    <div className="bg-bg-card border border-border rounded-xl p-5 shadow-sm">
       <h3 className="text-base font-semibold text-text-primary mb-4 font-sans tracking-tight">
         {exercise.name}
       </h3>
       
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm border-collapse mb-4">
-          <thead>
-            <tr className="border-b border-border text-[11px] font-mono uppercase tracking-wider text-text-tertiary">
-              <th className="py-2 w-16 text-center">Set</th>
-              <th className="py-2 px-3">Weight (kg)</th>
-              <th className="py-2 px-3">Reps</th>
-              <th className="py-2 px-3">RPE</th>
-              <th className="py-2 w-10 text-center"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40">
-            {sets.map((set, idx) => (
-              <tr key={idx} className="group">
-                <td className="py-3 text-center font-mono text-text-secondary">
-                  {idx + 1}
-                </td>
-                <td className="py-2 px-3">
-                  <input
+      <div className="space-y-4 mb-4">
+        {sets.map((set, idx) => {
+          const lastSet = lastSession?.[idx];
+          return (
+            <div key={idx} className="bg-bg-primary p-3 rounded-lg border border-border/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-medium text-text-secondary">Set {idx + 1}</span>
+                {sets.length > 1 && (
+                  <button
+                    id={`remove-set-btn-${exercise.id}-${idx}`}
+                    type="button"
+                    onClick={() => removeSet(idx)}
+                    className="text-text-tertiary hover:text-accent-red p-1 rounded transition-colors"
+                    title="Remove set"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Weight */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-text-tertiary mb-1">Weight (kg)</label>
+                  <StepperInput
                     id={`weight-input-${exercise.id}-${idx}`}
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    placeholder="--"
-                    value={set.weight !== null ? set.weight : ''}
-                    onChange={(e) => handleWeightChange(idx, e.target.value)}
-                    className="w-full bg-bg-input border border-border focus:border-border-focus text-text-primary font-mono text-sm rounded px-2.5 py-1.5 outline-none"
+                    value={set.weight}
+                    onChange={(v) => handleWeightChange(idx, v)}
+                    placeholder={lastSet?.weight !== null && lastSet?.weight !== undefined ? String(lastSet.weight) : '--'}
+                    min={0}
+                    step={2.5}
                   />
-                </td>
-                <td className="py-2 px-3">
-                  <input
+                </div>
+                {/* Reps */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-text-tertiary mb-1">Reps</label>
+                  <StepperInput
                     id={`reps-input-${exercise.id}-${idx}`}
-                    type="number"
-                    min="0"
-                    placeholder="0"
                     value={set.reps === 0 && set.weight === null ? '' : set.reps}
-                    onChange={(e) => handleRepsChange(idx, e.target.value)}
-                    className="w-full bg-bg-input border border-border focus:border-border-focus text-text-primary font-mono text-sm rounded px-2.5 py-1.5 outline-none"
+                    onChange={(v) => handleRepsChange(idx, v)}
+                    placeholder={lastSet?.reps !== null && lastSet?.reps !== undefined ? String(lastSet.reps) : '0'}
+                    min={0}
+                    step={1}
                   />
-                </td>
-                <td className="py-2 px-3">
-                  <input
+                </div>
+                {/* RPE */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider text-text-tertiary mb-1">RPE</label>
+                  <StepperInput
                     id={`rpe-input-${exercise.id}-${idx}`}
-                    type="number"
-                    min="1"
-                    max="10"
-                    placeholder="--"
-                    value={set.rpe !== null ? set.rpe : ''}
-                    onChange={(e) => handleRpeChange(idx, e.target.value)}
-                    className="w-full bg-bg-input border border-border focus:border-border-focus text-text-primary font-mono text-sm rounded px-2.5 py-1.5 outline-none"
+                    value={set.rpe}
+                    onChange={(v) => handleRpeChange(idx, v)}
+                    placeholder={lastSet?.rpe !== null && lastSet?.rpe !== undefined ? String(lastSet.rpe) : '--'}
+                    min={1}
+                    max={10}
+                    step={1}
                   />
-                </td>
-                <td className="py-2 text-center">
-                  {sets.length > 1 && (
-                    <button
-                      id={`remove-set-btn-${exercise.id}-${idx}`}
-                      type="button"
-                      onClick={() => removeSet(idx)}
-                      className="text-text-tertiary hover:text-accent-red transition-colors text-xs font-mono p-1 rounded hover:bg-bg-card-hover cursor-pointer"
-                      title="Remove set"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border/40">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border/40">
         <span className="text-xs text-text-tertiary font-mono">
           Last session: {formatLastSession(lastSession)}
         </span>
@@ -153,9 +204,9 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
           id={`add-set-btn-${exercise.id}`}
           type="button"
           onClick={addSet}
-          className="self-start sm:self-auto text-xs font-mono font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-2.5 py-1 rounded transition-colors cursor-pointer"
+          className="flex items-center justify-center sm:w-auto w-full text-xs font-mono font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-3 py-2 rounded-lg transition-colors cursor-pointer touch-manipulation"
         >
-          + Add Set
+          <Plus size={14} className="mr-1" /> Add Set
         </button>
       </div>
     </div>

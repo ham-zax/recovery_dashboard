@@ -100,15 +100,15 @@ export default async function WorkoutPage() {
       {/* Mini Weekly Schedule */}
       <div className="bg-bg-card rounded-xl border border-border p-4">
         <h4 className="text-xs font-mono uppercase tracking-wider text-text-tertiary mb-3">Weekly Schedule</h4>
-        <div className="grid grid-cols-7 gap-2 text-center text-xs font-mono">
+        <div className="flex overflow-x-auto snap-x gap-2 pb-2 md:grid md:grid-cols-7 text-center text-xs font-mono -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
           {Object.entries(schedule).map(([day, type]) => {
             const isToday = day === todayDayName;
             return (
               <div 
                 key={day} 
-                className={`p-2 rounded-lg border ${
+                className={`min-w-[64px] flex-shrink-0 snap-start p-2 rounded-lg border ${
                   isToday 
-                    ? 'border-accent-blue bg-accent-blue/5' 
+                    ? 'border-accent-blue bg-accent-blue/5 shadow-sm' 
                     : 'border-border/60 bg-bg-primary'
                 }`}
               >

@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TrendChart } from './charts/TrendChart';
+import { MetricCard } from './MetricCard';
 
 interface WeeklyReviewContentProps {
   protocolStartDateStr: string;
@@ -162,27 +164,16 @@ export function WeeklyReviewContent({
   };
 
   // Delta helpers
-  const renderDelta = (current: number, prev: number, isLowerBetter: boolean, isPercent = false) => {
-    const diff = current - prev;
-    if (prev === 0 && current === 0) return <span className="text-text-tertiary">● 0</span>;
-    
-    const suffix = isPercent ? '%' : '';
-    const diffStr = diff === 0 ? '0' : diff > 0 ? `+${diff.toFixed(1)}${suffix}` : `${diff.toFixed(1)}${suffix}`;
-    
-    let isGood = diff > 0;
-    if (isLowerBetter) {
-      isGood = diff < 0;
-    }
+  const getTrend = (current: number, prev: number) => {
+    if (current > prev) return 'up';
+    if (current < prev) return 'down';
+    return 'same';
+  };
 
-    if (diff === 0) {
-      return <span className="text-text-tertiary">● 0</span>;
-    }
-
-    return (
-      <span className={isGood ? 'text-accent-green font-semibold' : 'text-accent-red font-semibold'}>
-        {diff > 0 ? '▲' : '▼'} {diffStr}
-      </span>
-    );
+  const getDeltaStr = (current: number, prev: number, isPercent = false) => {
+    const diff = Math.abs(current - prev);
+    if (diff === 0) return '0';
+    return `${diff.toFixed(1)}${isPercent ? '%' : ''}`;
   };
 
   if (loading && !data) {
@@ -236,7 +227,7 @@ export function WeeklyReviewContent({
             disabled={selectedWeekIndex === 0}
             className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
           >
-            ◀
+            <ChevronLeft size={20} />
           </button>
           <span className="text-lg font-bold text-text-primary font-mono select-none">
             {selectedWeek.label}
@@ -246,7 +237,7 @@ export function WeeklyReviewContent({
             disabled={selectedWeekIndex === weeks.length - 1}
             className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
           >
-            ▶
+            <ChevronRight size={20} />
           </button>
           <span className="text-xs text-text-secondary font-mono ml-2">
             ({selectedWeek.rangeStr})
@@ -275,96 +266,70 @@ export function WeeklyReviewContent({
               <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
                 Weekly Stats Snapshot
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Score */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Recovery Score
-                  </span>
-                  <div className="text-2xl font-bold font-mono mt-1 text-accent-purple">
-                    {data.currentStats.recoveryScore}%
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.recoveryScore, data.prevStats.recoveryScore, false, true)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Recovery Score"
+                  value={`${data.currentStats.recoveryScore}%`}
+                  delta={getDeltaStr(data.currentStats.recoveryScore, data.prevStats.recoveryScore, true)}
+                  trend={getTrend(data.currentStats.recoveryScore, data.prevStats.recoveryScore)}
+                  accentColor="accent-purple"
+                />
 
                 {/* Pain */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Avg Pain
-                  </span>
-                  <div className="text-2xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.avgPain.toFixed(1)}
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.avgPain, data.prevStats.avgPain, true)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Pain"
+                  value={data.currentStats.avgPain.toFixed(1)}
+                  delta={getDeltaStr(data.currentStats.avgPain, data.prevStats.avgPain)}
+                  trend={getTrend(data.currentStats.avgPain, data.prevStats.avgPain)}
+                  accentColor="accent-red"
+                />
 
                 {/* Reflux */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Avg Reflux
-                  </span>
-                  <div className="text-2xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.avgReflux.toFixed(1)}
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.avgReflux, data.prevStats.avgReflux, true)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Reflux"
+                  value={data.currentStats.avgReflux.toFixed(1)}
+                  delta={getDeltaStr(data.currentStats.avgReflux, data.prevStats.avgReflux)}
+                  trend={getTrend(data.currentStats.avgReflux, data.prevStats.avgReflux)}
+                  accentColor="accent-amber"
+                />
 
                 {/* Walks */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Walk Streak
-                  </span>
-                  <div className="text-2xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.totalWalks}/7
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.totalWalks, data.prevStats.totalWalks, false)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Walk Streak"
+                  value={`${data.currentStats.totalWalks}/7`}
+                  delta={getDeltaStr(data.currentStats.totalWalks, data.prevStats.totalWalks)}
+                  trend={getTrend(data.currentStats.totalWalks, data.prevStats.totalWalks)}
+                  accentColor="accent-green"
+                />
 
                 {/* Workouts */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Workouts
-                  </span>
-                  <div className="text-xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.totalWorkouts} logged
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.totalWorkouts, data.prevStats.totalWorkouts, false)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Workouts"
+                  value={`${data.currentStats.totalWorkouts} logged`}
+                  delta={getDeltaStr(data.currentStats.totalWorkouts, data.prevStats.totalWorkouts)}
+                  trend={getTrend(data.currentStats.totalWorkouts, data.prevStats.totalWorkouts)}
+                  accentColor="accent-blue"
+                />
 
                 {/* Sleep */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Avg Sleep
-                  </span>
-                  <div className="text-xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.avgSleep.toFixed(1)}h
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.avgSleep, data.prevStats.avgSleep, false)}
-                  </div>
-                </div>
+                <MetricCard
+                  label="Avg Sleep"
+                  value={`${data.currentStats.avgSleep.toFixed(1)}h`}
+                  delta={getDeltaStr(data.currentStats.avgSleep, data.prevStats.avgSleep)}
+                  trend={getTrend(data.currentStats.avgSleep, data.prevStats.avgSleep)}
+                  accentColor="accent-blue"
+                />
 
                 {/* Sitting Breaks */}
-                <div className="border border-border rounded-lg p-3 bg-bg-input col-span-2">
-                  <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-                    Sitting Breaks Actual
-                  </span>
-                  <div className="text-xl font-bold font-mono mt-1 text-text-primary">
-                    {data.currentStats.avgSittingBreaks.toFixed(1)} breaks/day
-                  </div>
-                  <div className="text-[10px] font-mono text-text-tertiary mt-1">
-                    {renderDelta(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks, false)}
-                  </div>
+                <div className="col-span-2 lg:col-span-2">
+                  <MetricCard
+                    label="Sitting Breaks"
+                    value={`${data.currentStats.avgSittingBreaks.toFixed(1)}/day`}
+                    delta={getDeltaStr(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
+                    trend={getTrend(data.currentStats.avgSittingBreaks, data.prevStats.avgSittingBreaks)}
+                    accentColor="accent-purple"
+                  />
                 </div>
               </div>
             </div>
@@ -390,11 +355,17 @@ export function WeeklyReviewContent({
         {/* Right Side: Reflections and Notes */}
         <div className="space-y-6">
           <div className="bg-bg-card border border-border rounded-xl p-6 flex flex-col justify-between min-h-[480px]">
-            <div className="space-y-5">
-              <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Weekly Reflections
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-text-primary tracking-tight">Reflections</h3>
+                  <p className="text-xs text-text-tertiary mt-1 max-w-sm leading-relaxed">
+                    Poor results + poor compliance = <strong className="text-accent-red font-semibold">fix compliance first</strong>.<br/>
+                    Poor results + good compliance for 8–12 weeks = <strong className="text-accent-amber font-semibold">investigate further</strong>.
+                  </p>
+                </div>
+              </div>
 
+            <div className="space-y-5">
               {/* What improved */}
               <div>
                 <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider mb-1.5">
@@ -404,7 +375,8 @@ export function WeeklyReviewContent({
                   value={improved}
                   onChange={(e) => setImproved(e.target.value)}
                   placeholder="e.g. Scapular pain decreased during workouts..."
-                  className="w-full bg-bg-input border border-border rounded-lg p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none h-24"
+                  rows={3}
+                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
 
@@ -417,7 +389,8 @@ export function WeeklyReviewContent({
                   value={worsened}
                   onChange={(e) => setWorsened(e.target.value)}
                   placeholder="e.g. Neck stiffness felt higher after long sitting blocks..."
-                  className="w-full bg-bg-input border border-border rounded-lg p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none h-24"
+                  rows={3}
+                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
 
@@ -430,7 +403,8 @@ export function WeeklyReviewContent({
                   value={nextWeekFocus}
                   onChange={(e) => setNextWeekFocus(e.target.value)}
                   placeholder="e.g. Stand up every 45 mins. Keep walking streak..."
-                  className="w-full bg-bg-input border border-border rounded-lg p-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none h-24"
+                  rows={3}
+                  className="w-full bg-bg-input border border-border rounded-xl p-4 text-[17px] leading-relaxed text-text-primary placeholder:text-text-tertiary focus:border-border-focus outline-none resize-none min-h-[100px]"
                 />
               </div>
             </div>

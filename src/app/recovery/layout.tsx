@@ -49,10 +49,17 @@ export default function RecoveryLayout({
             );
           })}
         </nav>
-        <div className="p-4 border-t border-border/30">
-          <p className="text-[10px] text-text-tertiary leading-relaxed italic">
-            &ldquo;Execute one protocol consistently for 12 weeks.&rdquo;
+        <div className="p-4 border-t border-border/30 space-y-2 mt-auto">
+          <p className="text-[10px] text-text-secondary font-mono tracking-widest font-semibold uppercase mb-2">
+            Core Principles
           </p>
+          <ul className="text-xs text-text-tertiary space-y-1.5 opacity-90">
+            <li>Execution &gt; Explanation</li>
+            <li>Movement &gt; Static Load</li>
+            <li>Capacity &gt; Correction</li>
+            <li>Consistency &gt; Intensity</li>
+            <li>Months &gt; Days</li>
+          </ul>
         </div>
       </aside>
 
@@ -64,7 +71,7 @@ export default function RecoveryLayout({
         </div>
 
         {/* Content area with bottom padding for mobile nav */}
-        <div className="flex-1 px-4 py-5 md:px-8 md:py-6 pb-24 md:pb-6">
+        <div className="flex-1 px-4 py-5 md:px-8 md:py-6 pb-[max(6rem,env(safe-area-inset-bottom))] md:pb-6">
           {children}
         </div>
       </main>

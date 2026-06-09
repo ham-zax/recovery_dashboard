@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle2 } from 'lucide-react';
 import { ExerciseCard, SetData } from './ExerciseCard';
+import { SegmentedControl } from './ui/SegmentedControl';
 
 interface Exercise {
   id: number;
@@ -157,32 +159,14 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
           <label className="block text-sm font-medium text-text-secondary mb-2">
             Workout Type
           </label>
-          <div className="flex gap-2">
-            <button
-              id="type-lower-btn"
-              type="button"
-              onClick={() => setWorkoutType('LOWER')}
-              className={`flex-1 py-2 px-4 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${
-                workoutType === 'LOWER'
-                  ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/30'
-                  : 'bg-bg-input text-text-secondary border-border hover:border-border-focus'
-              }`}
-            >
-              Lower Body
-            </button>
-            <button
-              id="type-upper-btn"
-              type="button"
-              onClick={() => setWorkoutType('UPPER')}
-              className={`flex-1 py-2 px-4 rounded-lg border text-sm font-semibold transition-all cursor-pointer ${
-                workoutType === 'UPPER'
-                  ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/30'
-                  : 'bg-bg-input text-text-secondary border-border hover:border-border-focus'
-              }`}
-            >
-              Upper Body
-            </button>
-          </div>
+          <SegmentedControl
+            options={[
+              { label: 'Lower Body', value: 'LOWER' },
+              { label: 'Upper Body', value: 'UPPER' },
+            ]}
+            value={workoutType}
+            onChange={(val) => setWorkoutType(val as 'LOWER' | 'UPPER')}
+          />
         </div>
       </div>
 
@@ -237,8 +221,9 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
         </div>
       )}
       {success && (
-        <div id="workout-success" className="text-accent-green text-sm font-mono bg-accent-green/10 border border-accent-green/20 rounded-lg p-3">
-          ✓ Workout logged successfully.
+        <div id="workout-success" className="flex items-center gap-2 text-accent-green text-sm font-mono bg-accent-green/10 border border-accent-green/20 rounded-lg p-3">
+          <CheckCircle2 size={16} />
+          Workout logged successfully.
         </div>
       )}
 
