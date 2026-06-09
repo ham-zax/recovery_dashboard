@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Backgrounds — Notion × Linear × Obsidian inspired (Zinc/Slate Matte scale) */
-  --color-bg-primary: #09090b;       /* Zinc 950 */
-  --color-bg-card: #121215;          /* Deep matte card */
-  --color-bg-card-hover: #18181c;    /* Card hover state */
-  --color-bg-input: #121215;
-  --color-bg-elevated: #1e1e24;
+  /* Backgrounds — Premium, muted dark clinical (Option A Bevel Hybrid) */
+  --color-bg-primary: #08090b;       /* Cooler, deeper black */
+  --color-bg-card: #111317;          /* Warmer, object-like surface */
+  --color-bg-card-hover: #16181d;
+  --color-bg-input: #111317;
+  --color-bg-elevated: #16181d;
 
   /* Borders — Clean, thin Obsidian borders */
-  --color-border: #222227;           /* Slate 800-ish */
-  --color-border-focus: #3f3f46;     /* Zinc 700 */
+  --color-border: #222328;
+  --color-border-focus: #3b3d45;
 
   /* Text — Balanced gray scales */
-  --color-text-primary: #f4f4f5;      /* Zinc 100 */
-  --color-text-secondary: #a1a1aa;    /* Zinc 400 */
-  --color-text-tertiary: #52525b;     /* Zinc 600 */
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #52525b;
 
-  /* Accents — Muted, sophisticated Linear colors */
-  --color-accent-blue: #38bdf8;       /* Sky 400 */
-  --color-accent-green: #34d399;      /* Emerald 400 */
-  --color-accent-red: #f87171;        /* Red 400 */
-  --color-accent-amber: #fbbf24;      /* Amber 400 */
-  --color-accent-purple: #818cf8;     /* Indigo 400 */
+  /* Accents — Muted, clinical, low-saturation tones */
+  --color-accent-blue: #6FBFD8;       /* Walking: Muted Sky */
+  --color-accent-green: #5B9A74;      /* Strength/Compliance: Muted Sage */
+  --color-accent-red: #C97A7A;        /* Pain: Muted Rose */
+  --color-accent-amber: #C9A15A;      /* Reflux: Muted Gold */
+  --color-accent-purple: #8A8DF0;     /* Recovery: Soft Periwinkle */
 
   /* Typography — mapped from next/font CSS variables */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -46,7 +46,7 @@ html {
 
 body {
   background-color: var(--color-bg-primary);
-  background-image: radial-gradient(circle at top center, rgba(99, 102, 241, 0.04), transparent 50%);
+  background-image: radial-gradient(circle at top center, rgba(138, 141, 240, 0.04), transparent 50%);
   color: var(--color-text-primary);
   overscroll-behavior: contain;
   min-height: 100vh;

@@ -12,16 +12,7 @@ export function RecoveryScore({ state }: RecoveryScoreProps) {
   const clampedScore = hasScore ? Math.min(100, Math.max(0, state.score!)) : 0;
 
   // Semantic glow behind the text
-  let glowClass = '';
-  if (hasScore) {
-    if (clampedScore >= 75) {
-      glowClass = 'shadow-[0_0_80px_rgba(52,211,153,0.15)]';
-    } else if (clampedScore >= 50) {
-      glowClass = 'shadow-[0_0_80px_rgba(129,140,248,0.15)]';
-    } else {
-      glowClass = 'shadow-[0_0_80px_rgba(248,113,113,0.15)]';
-    }
-  }
+  const glowClass = hasScore ? 'shadow-[0_0_50px_rgba(138,141,240,0.10)]' : '';
 
   return (
     <div className="flex flex-col items-center justify-center text-center w-full py-16 sm:py-24">

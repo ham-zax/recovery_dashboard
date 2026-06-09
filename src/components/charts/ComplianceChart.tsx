@@ -41,12 +41,12 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
       {
         label: 'Daily Check-In Compliance (%)',
         data: data.map((d) => d.compliance),
-        backgroundColor: 'rgba(52, 211, 153, 0.2)', // accent-green with opacity
-        borderColor: '#34d399', // accent-green
+        backgroundColor: 'rgba(91, 154, 116, 0.2)', // muted sage with opacity
+        borderColor: '#5B9A74', // muted sage
         borderWidth: 1,
         borderRadius: 4,
-        hoverBackgroundColor: 'rgba(52, 211, 153, 0.4)',
-        hoverBorderColor: '#34d399',
+        hoverBackgroundColor: 'rgba(91, 154, 116, 0.4)',
+        hoverBorderColor: '#5B9A74',
       },
     ],
   };

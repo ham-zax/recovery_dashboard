@@ -47,8 +47,8 @@ export function TrendChart({ data }: TrendChartProps) {
       {
         label: 'Pain (0-10)',
         data: data.map((d) => d.pain),
-        borderColor: '#f87171', // accent-red
-        backgroundColor: 'rgba(248, 113, 113, 0.05)',
+        borderColor: '#D46A6A', // muted rose
+        backgroundColor: 'rgba(212, 106, 106, 0.05)',
         tension: 0.25,
         yAxisID: 'yPain',
         fill: true,
@@ -57,8 +57,8 @@ export function TrendChart({ data }: TrendChartProps) {
       {
         label: 'Reflux (0-10)',
         data: data.map((d) => d.reflux),
-        borderColor: '#fbbf24', // accent-amber
-        backgroundColor: 'rgba(251, 191, 36, 0.05)',
+        borderColor: '#D6A35D', // muted gold
+        backgroundColor: 'rgba(214, 163, 93, 0.05)',
         tension: 0.25,
         yAxisID: 'yPain',
         fill: true,
@@ -67,7 +67,7 @@ export function TrendChart({ data }: TrendChartProps) {
       {
         label: 'Walked Today',
         data: data.map((d) => d.walked),
-        borderColor: '#4e8cff', // accent-blue
+        borderColor: '#56C5E8', // muted sky
         backgroundColor: 'transparent',
         tension: 0.0,
         yAxisID: 'yWalk',
