@@ -4,6 +4,7 @@ import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights 
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
 import { eventProvider } from './recoveryEvents';
+import { getActiveProtocol } from './protocol';
 
 interface DailyLog {
   id: number;
@@ -54,11 +55,12 @@ export async function getDashboardData(days: number) {
   const settings = await prisma.setting.findMany();
   const settingsMap = new Map(settings.map(s => [s.key, s.value]));
 
-  // Parse weights
+  // Fetch protocol for weights
+  const protocol = await getActiveProtocol();
   let weights: ScoreWeights = DEFAULT_WEIGHTS;
-  if (settingsMap.has('recovery_score_weights')) {
+  if (protocol.recoveryWeights) {
     try {
-      const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+      const parsed = JSON.parse(protocol.recoveryWeights);
       weights = validateWeights(parsed);
     } catch {
       // fallback to default
@@ -114,12 +116,6 @@ export async function getDashboardData(days: number) {
   const totalWalks = currentLogs.filter(l => l.walkedToday).length;
   const totalWorkouts = currentWorkouts.length;
   const expectedWorkouts = countScheduledWorkouts(limitDate, addDays(today, 1), schedule);
-
-  // Sitting compliance for each day: actual / target capped at 1.0
-  const dailySittingCompliances = currentLogs.map(l => {
-    const target = l.sittingBreaksTarget > 0 ? l.sittingBreaksTarget : 10;
-    return Math.min(1, l.sittingBreaksActual / target);
-  });
 
   // Find today's log for the Recovery Score calculation
   const todayLog = currentLogs.find(l => startOfDay(new Date(l.date)).getTime() === today.getTime()) || null;

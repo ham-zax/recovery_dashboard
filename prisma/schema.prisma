@@ -18,8 +18,10 @@ model DailyLog {
   sittingBreaksTarget Int      @default(10)
   sittingBreaksActual Int      @default(0)
   notes               String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  protocolId          Int?
+  protocol            Protocol? @relation(fields: [protocolId], references: [id])
 }
 
 model WorkoutSession {
@@ -77,6 +79,17 @@ model ProtocolLock {
   lockedUntil DateTime
   description String?
   createdAt   DateTime @default(now())
+}
+
+model Protocol {
+  id              Int      @id @default(autoincrement())
+  version         String   @unique
+  walkingTarget   Int      @default(1)
+  sittingTarget   Int      @default(10)
+  recoveryWeights String?  // Stored as JSON string
+  active          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  logs            DailyLog[]
 }
 
 model Setting {

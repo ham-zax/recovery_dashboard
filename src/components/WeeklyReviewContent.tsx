@@ -553,7 +553,7 @@ export function WeeklyReviewContent({
                           Notes
                         </h5>
                         <p className="text-[13px] text-text-secondary leading-relaxed italic">
-                          "{day.notes}"
+                          &quot;{day.notes}&quot;
                         </p>
                       </div>
                     )}

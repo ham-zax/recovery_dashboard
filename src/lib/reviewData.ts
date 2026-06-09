@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 import { eventProvider, formatDayKey } from './recoveryEvents';
+import { getActiveProtocol } from './protocol';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -161,10 +162,12 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
   const settings = await prisma.setting.findMany();
   const settingsMap = new Map(settings.map(s => [s.key, s.value]));
 
+  const protocol = await getActiveProtocol();
+
   let weights: ScoreWeights = DEFAULT_WEIGHTS;
-  if (settingsMap.has('recovery_score_weights')) {
+  if (protocol.recoveryWeights) {
     try {
-      const parsed = JSON.parse(settingsMap.get('recovery_score_weights')!);
+      const parsed = JSON.parse(protocol.recoveryWeights);
       weights = validateWeights(parsed);
     } catch {
       // fallback

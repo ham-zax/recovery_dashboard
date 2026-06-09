@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 import { startOfDay, subDays } from 'date-fns';
+import { getActiveProtocol } from '@/lib/protocol';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const date = startOfDay(new Date(body.date ?? new Date()));
+    const protocol = await getActiveProtocol();
 
     const log = await prisma.dailyLog.upsert({
       where: { date },
@@ -48,8 +50,9 @@ export async function POST(request: NextRequest) {
         strengthToday: !!body.strengthToday,
         sleepHours: parseFloat(body.sleepHours ?? 0),
         sittingBreaksActual: parseInt(body.sittingBreaksActual ?? 0),
-        sittingBreaksTarget: parseInt(body.sittingBreaksTarget ?? 10),
+        sittingBreaksTarget: protocol.sittingTarget,
         notes: body.notes ?? null,
+        protocolId: protocol.id,
       },
       create: {
         date,
@@ -59,8 +62,9 @@ export async function POST(request: NextRequest) {
         strengthToday: !!body.strengthToday,
         sleepHours: parseFloat(body.sleepHours ?? 0),
         sittingBreaksActual: parseInt(body.sittingBreaksActual ?? 0),
-        sittingBreaksTarget: parseInt(body.sittingBreaksTarget ?? 10),
+        sittingBreaksTarget: protocol.sittingTarget,
         notes: body.notes ?? null,
+        protocolId: protocol.id,
       },
     });
 

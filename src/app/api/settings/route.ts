@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { isProtocolLocked } from '@/lib/lock';
+import { getActiveProtocol, updateActiveProtocol } from '@/lib/protocol';
 
 export async function GET() {
   try {
@@ -9,6 +10,20 @@ export async function GET() {
     for (const s of settings) {
       settingsMap[s.key] = s.value;
     }
+
+    const protocol = await getActiveProtocol();
+    
+    // LEGACY API COMPATIBILITY SHIM
+    // The UI still expects these protocol fields to be present in the general
+    // 'settings' dictionary. We synthesize them here to maintain backwards 
+    // compatibility with the SettingsContent component without needing UI rewrites yet.
+    // TODO: Remove this once SettingsContent UI is updated to fetch Protocol fields directly.
+    settingsMap['sitting_breaks_target'] = protocol.sittingTarget.toString();
+    settingsMap['walking_target'] = protocol.walkingTarget.toString();
+    if (protocol.recoveryWeights) {
+      settingsMap['recovery_score_weights'] = protocol.recoveryWeights;
+    }
+    settingsMap['protocol_version'] = protocol.version;
 
     const latestLock = await prisma.protocolLock.findFirst({
       orderBy: { createdAt: 'desc' },
@@ -36,54 +51,84 @@ export async function POST(request: NextRequest) {
 
     const isLocked = await isProtocolLocked();
 
-    // If locked, prevent changes to protocol settings
-    if (isLocked && settings) {
-      const lockedKeys = [
-        'recovery_score_weights',
-        'workout_schedule',
-        'protocol_start_date',
-        'protocol_duration_days',
-      ];
+    if (settings) {
+      const protocolUpdate: { sittingTarget?: number; walkingTarget?: number; recoveryWeights?: string } = {};
+      const genericSettings: Record<string, string> = {};
 
-      const attemptedChanges = [];
-      for (const key of lockedKeys) {
-        if (key in settings) {
-          const existingSetting = await prisma.setting.findUnique({
-            where: { key },
-          });
-          const existingValue = existingSetting ? existingSetting.value : '';
-          const newValue = String(settings[key]);
-          if (existingValue !== newValue) {
-            attemptedChanges.push(key);
-          }
+      for (const [key, value] of Object.entries(settings)) {
+        if (key === 'sitting_breaks_target') {
+          protocolUpdate.sittingTarget = parseInt(String(value), 10);
+        } else if (key === 'walking_target') {
+          protocolUpdate.walkingTarget = parseInt(String(value), 10);
+        } else if (key === 'recovery_score_weights') {
+          protocolUpdate.recoveryWeights = String(value);
+        } else {
+          genericSettings[key] = String(value);
         }
       }
-      
-      if (attemptedChanges.length > 0) {
-        const activeLock = await prisma.protocolLock.findFirst({
-          where: {
-            lockedUntil: {
-              gt: new Date(),
-            },
-          },
-          orderBy: { lockedUntil: 'desc' },
-        });
-        const formattedDate = activeLock
-          ? new Date(activeLock.lockedUntil).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })
-          : 'set date';
-        return NextResponse.json({
-          error: `Protocol is locked until ${formattedDate}. Cannot modify protocol settings: ${attemptedChanges.join(', ')}.`,
-        }, { status: 403 });
-      }
-    }
 
-    // Update settings
-    if (settings) {
-      for (const [key, value] of Object.entries(settings)) {
+      const activeProtocol = await getActiveProtocol();
+      let protocolChanged = false;
+      if (protocolUpdate.sittingTarget !== undefined && protocolUpdate.sittingTarget !== activeProtocol.sittingTarget) protocolChanged = true;
+      if (protocolUpdate.walkingTarget !== undefined && protocolUpdate.walkingTarget !== activeProtocol.walkingTarget) protocolChanged = true;
+      if (protocolUpdate.recoveryWeights !== undefined && protocolUpdate.recoveryWeights !== activeProtocol.recoveryWeights) protocolChanged = true;
+
+      // If locked, prevent changes to legacy generic settings
+      // Note: Protocol field mutations are now strictly enforced by updateActiveProtocol() below.
+      if (isLocked) {
+        const lockedKeys = [
+          'workout_schedule',
+          'protocol_start_date',
+          'protocol_duration_days',
+        ];
+
+        const attemptedChanges = [];
+        for (const key of lockedKeys) {
+          if (key in genericSettings) {
+            const existingSetting = await prisma.setting.findUnique({
+              where: { key },
+            });
+            const existingValue = existingSetting ? existingSetting.value : '';
+            const newValue = String(genericSettings[key]);
+            if (existingValue !== newValue) {
+              attemptedChanges.push(key);
+            }
+          }
+        }
+        
+        if (attemptedChanges.length > 0) {
+          const activeLock = await prisma.protocolLock.findFirst({
+            where: {
+              lockedUntil: {
+                gt: new Date(),
+              },
+            },
+            orderBy: { lockedUntil: 'desc' },
+          });
+          const formattedDate = activeLock
+            ? new Date(activeLock.lockedUntil).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : 'set date';
+          return NextResponse.json({
+            error: `Protocol is locked until ${formattedDate}. Cannot modify settings: ${attemptedChanges.join(', ')}.`,
+          }, { status: 403 });
+        }
+      }
+
+      // Update settings
+      // Ownership boundaries: updateActiveProtocol() will reject internally if locked
+      if (protocolChanged) {
+        try {
+          await updateActiveProtocol(protocolUpdate);
+        } catch (e) {
+          return NextResponse.json({ error: (e as Error).message }, { status: 403 });
+        }
+      }
+
+      for (const [key, value] of Object.entries(genericSettings)) {
         await prisma.setting.upsert({
           where: { key },
           update: { value: String(value) },
