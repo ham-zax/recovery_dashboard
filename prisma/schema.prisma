@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,83 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+}
+
+model DailyLog {
+  id                  Int      @id @default(autoincrement())
+  date                DateTime @unique
+  pain                Int      // 0-10
+  reflux              Int      // 0-10
+  walkedToday         Boolean
+  strengthToday       Boolean
+  sleepHours          Float
+  sittingBreaksTarget Int      @default(10)
+  sittingBreaksActual Int      @default(0)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model WorkoutSession {
+  id        Int             @id @default(autoincrement())
+  date      DateTime
+  type      String          // LOWER | UPPER
+  notes     String?
+  entries   ExerciseEntry[]
+  createdAt DateTime        @default(now())
+}
+
+model ExerciseEntry {
+  id         Int            @id @default(autoincrement())
+  sessionId  Int
+  exerciseId Int
+  setNumber  Int
+  weight     Float?         // kg
+  reps       Int
+  rpe        Int?           // 1-10
+  session    WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise   Exercise       @relation(fields: [exerciseId], references: [id])
+  createdAt  DateTime       @default(now())
+}
+
+model Exercise {
+  id        Int             @id @default(autoincrement())
+  name      String
+  category  String          // LOWER | UPPER
+  sortOrder Int
+  active    Boolean         @default(true)
+  entries   ExerciseEntry[]
+  createdAt DateTime        @default(now())
+}
+
+model WeeklyReview {
+  id                Int      @id @default(autoincrement())
+  weekStarting      DateTime @unique
+  compliancePercent Float
+  avgPain           Float
+  avgReflux         Float
+  totalWalks        Int
+  totalWorkouts     Int
+  avgSleep          Float
+  avgSittingBreaks  Float    @default(0)
+  aiSummary         String?
+  manualNotes       String?
+  nextWeekFocus     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ProtocolLock {
+  id          Int      @id @default(autoincrement())
+  version     String   // e.g. v1.0
+  lockedUntil DateTime
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
 }
