@@ -36,9 +36,10 @@ interface ChartDataPoint {
 
 interface TrendChartProps {
   data: ChartDataPoint[];
+  title?: string;
 }
 
-export function TrendChart({ data }: TrendChartProps) {
+export function TrendChart({ data, title = "Pain & Activity Trends" }: TrendChartProps) {
   const labels = data.map((d) => d.displayDate);
 
   const chartData = {
@@ -202,8 +203,8 @@ export function TrendChart({ data }: TrendChartProps) {
 
   return (
     <div className="w-full h-80 linear-card rounded-xl p-6">
-      <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
-        Pain & Activity Trends
+      <h3 className="text-[13px] font-medium text-text-primary tracking-wide mb-4">
+        {title}
       </h3>
       <div className="w-full h-[calc(100%-2rem)]">
         <Line data={chartData} options={options} />

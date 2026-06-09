@@ -29,6 +29,10 @@ interface DashboardResponse {
     reflux: MetricInfo;
     sittingBreaks: MetricInfo;
   };
+  insights: {
+    trend: string;
+    compliance: string;
+  };
   chartData: {
     date: string;
     displayDate: string;
@@ -226,10 +230,10 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
             ) : (
               <div className="space-y-6">
                 <div className="w-full">
-                  <TrendChart data={data.chartData} />
+                  <TrendChart data={data.chartData} title={data.insights.trend} />
                 </div>
                 <div className="w-full">
-                  <ComplianceChart data={data.chartData} />
+                  <ComplianceChart data={data.chartData} title={data.insights.compliance} />
                 </div>
               </div>
             )}

@@ -30,9 +30,10 @@ interface ChartDataPoint {
 
 interface ComplianceChartProps {
   data: ChartDataPoint[];
+  title?: string;
 }
 
-export function ComplianceChart({ data }: ComplianceChartProps) {
+export function ComplianceChart({ data, title = "Compliance Trend" }: ComplianceChartProps) {
   const labels = data.map((d) => d.displayDate);
 
   const chartData = {
@@ -125,9 +126,9 @@ export function ComplianceChart({ data }: ComplianceChartProps) {
   };
 
   return (
-    <div className="w-full h-48 linear-card rounded-xl p-6">
-      <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-4">
-        Daily Check-In Compliance Trend
+    <div className="w-full h-64 linear-card rounded-xl p-6">
+      <h3 className="text-[13px] font-medium text-text-primary tracking-wide mb-4">
+        {title}
       </h3>
       <div className="w-full h-[calc(100%-2rem)]">
         <Bar data={chartData} options={options} />

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { startOfDay, subDays, format, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
+import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
 
 interface DailyLog {
   id: number;
@@ -214,6 +215,12 @@ export async function getDashboardData(days: number) {
     });
   }
 
+  // Generate Narrative Insights
+  const insights = {
+    trend: generateTrendInsight(painStats.trend, walkingStats.trend),
+    compliance: generateComplianceInsight(complianceStats.trend, currentAvgSittingCompliance * 100),
+  };
+
   return {
     recoveryState,
     periodDays: days,
@@ -253,6 +260,7 @@ export async function getDashboardData(days: number) {
         ...sittingBreaksStats,
       },
     },
+    insights,
     chartData,
   };
 }
