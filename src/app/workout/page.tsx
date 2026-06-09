@@ -11,14 +11,14 @@ export default async function WorkoutPage() {
     orderBy: { sortOrder: 'asc' },
   });
 
-  const lastSessions: Record<number, SetData[]> = {};
+  const lastSessions: Record<number, { date: string, sets: SetData[] } | null> = {};
 
   // For each exercise, retrieve the sets logged during the most recent workout session
   for (const ex of exercises) {
     const lastEntry = await prisma.exerciseEntry.findFirst({
       where: { exerciseId: ex.id },
       orderBy: { session: { date: 'desc' } },
-      select: { sessionId: true },
+      select: { sessionId: true, session: { select: { date: true } } },
     });
 
     if (lastEntry) {
@@ -34,9 +34,12 @@ export default async function WorkoutPage() {
           rpe: true,
         },
       });
-      lastSessions[ex.id] = entries;
+      lastSessions[ex.id] = {
+        date: lastEntry.session.date.toISOString(),
+        sets: entries,
+      };
     } else {
-      lastSessions[ex.id] = [];
+      lastSessions[ex.id] = null;
     }
   }
 

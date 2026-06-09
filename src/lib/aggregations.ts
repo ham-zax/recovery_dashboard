@@ -3,6 +3,7 @@ import { startOfDay, subDays, format, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
+import { generateRecoveryEvents, selectDashboardEvents } from './recoveryEvents';
 
 interface DailyLog {
   id: number;
@@ -221,6 +222,9 @@ export async function getDashboardData(days: number) {
     compliance: generateComplianceInsight(complianceStats.trend, currentAvgSittingCompliance * 100),
   };
 
+  // Generate point-in-time Recovery Events
+  const events = generateRecoveryEvents(currentLogs, currentWorkouts);
+
   return {
     recoveryState,
     periodDays: days,
@@ -261,6 +265,7 @@ export async function getDashboardData(days: number) {
       },
     },
     insights,
+    events: selectDashboardEvents(events, 3), // return top 3 most important dashboard-eligible events
     chartData,
   };
 }

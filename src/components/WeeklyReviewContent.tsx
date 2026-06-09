@@ -205,13 +205,14 @@ export function WeeklyReviewContent({
     );
   }
 
-  const chartPoints = data?.dailyLogs.map((log) => ({
+  const timelineDaysNewestFirst = data?.timelineDays ?? [];
+  const chartPointsChronological = [...timelineDaysNewestFirst].reverse().map((log) => ({
     date: log.date,
     displayDate: format(new Date(log.date), 'MMM dd'),
     pain: log.pain,
     walked: log.walked ? 1 : 0,
     reflux: log.reflux,
-  })) ?? [];
+  }));
 
   let protocolResponse = 'Insufficient Data';
   let responseColor = 'text-text-secondary';
@@ -378,8 +379,8 @@ export function WeeklyReviewContent({
               7-Day Trend (Pain vs Walking)
             </h3>
             <div className="h-[280px]">
-              {chartPoints.length > 0 ? (
-                <TrendChart data={chartPoints} />
+              {chartPointsChronological.length > 0 ? (
+                <TrendChart data={chartPointsChronological} />
               ) : (
                 <div className="h-full flex items-center justify-center text-text-tertiary text-sm font-mono">
                   No daily logs recorded for this week.
@@ -470,6 +471,99 @@ export function WeeklyReviewContent({
           </div>
         </div>
       </div>
+
+      {/* Timeline */}
+      {data && data.timelineDays.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-section-header mb-6">
+            Recovery Timeline
+          </h3>
+          <div className="space-y-4">
+            {timelineDaysNewestFirst.map((day, idx) => (
+              <div key={idx} className="bg-bg-card border border-border rounded-xl p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  {/* Left: Date & Events */}
+                  <div className="sm:w-1/4">
+                    <h4 className="text-[15px] font-bold text-text-primary mb-3">
+                      {format(new Date(day.date), 'MMMM d, yyyy')}
+                    </h4>
+                    {day.events.length > 0 ? (
+                      <ul className="space-y-1.5">
+                        {day.events.map((e, i) => (
+                          <li key={i} className={`text-[14px] font-medium ${
+                            e.severity === 'positive' ? 'text-accent-green' :
+                            e.severity === 'negative' ? 'text-accent-red' :
+                            'text-text-primary'
+                          }`}>
+                            {e.headline}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-[13px] text-text-tertiary italic">No major events</span>
+                    )}
+                  </div>
+
+                  {/* Middle: Inputs */}
+                  <div className="sm:w-1/3">
+                    <h5 className="text-[11px] text-text-tertiary font-mono uppercase tracking-wider mb-2">
+                      Inputs
+                    </h5>
+                    <ul className="space-y-1">
+                      {day.walked && (
+                        <li className="flex items-center gap-2 text-[13px] text-text-primary">
+                          <span className="text-accent-green">✓</span> Walked
+                        </li>
+                      )}
+                      {day.hasWorkout && (
+                        <li className="flex items-center gap-2 text-[13px] text-text-primary">
+                          <span className="text-accent-blue">✓</span> Strength Workout
+                        </li>
+                      )}
+                      <li className="flex items-center gap-2 text-[13px] text-text-secondary">
+                        <span className="text-text-tertiary">•</span> Sleep: {day.sleepHours}h
+                      </li>
+                      <li className="flex items-center gap-2 text-[13px] text-text-secondary">
+                        <span className="text-text-tertiary">•</span> Sitting breaks: {day.sittingBreaksActual}/{day.sittingBreaksTarget}
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Right: Metrics & Notes */}
+                  <div className="sm:w-1/3 flex flex-col gap-4">
+                    <div>
+                      <h5 className="text-[11px] text-text-tertiary font-mono uppercase tracking-wider mb-2">
+                        Metrics
+                      </h5>
+                      <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                        <div className="flex justify-between items-center w-32">
+                          <span>Pain:</span>
+                          <span className="font-mono">{day.pain}/10</span>
+                        </div>
+                        <div className="flex justify-between items-center w-32">
+                          <span>Reflux:</span>
+                          <span className="font-mono">{day.reflux}/10</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {day.notes && (
+                      <div>
+                        <h5 className="text-[11px] text-text-tertiary font-mono uppercase tracking-wider mb-1">
+                          Notes
+                        </h5>
+                        <p className="text-[13px] text-text-secondary leading-relaxed italic">
+                          "{day.notes}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

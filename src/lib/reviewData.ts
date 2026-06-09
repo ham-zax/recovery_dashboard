@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
+import { generateRecoveryEvents, RecoveryEvent, formatDayKey, selectTimelineEvents } from './recoveryEvents';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -135,11 +136,17 @@ export interface WeeklyReviewResponse {
     worsened: string;
     nextWeekFocus: string;
   };
-  dailyLogs: {
+  timelineDays: {
     date: string;
     pain: number;
-    walked: boolean;
     reflux: number;
+    walked: boolean;
+    hasWorkout: boolean;
+    sleepHours: number;
+    sittingBreaksActual: number;
+    sittingBreaksTarget: number;
+    notes: string | null;
+    events: { headline: string; severity: 'positive' | 'negative' | 'neutral' }[];
   }[];
 }
 
@@ -204,6 +211,60 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
     },
     orderBy: { date: 'asc' },
   });
+  const workouts = await prisma.workoutSession.findMany({
+    where: {
+      date: {
+        gte: weekStarting,
+        lte: weekEnding,
+      },
+    },
+  });
+
+  // Calculate events for the week
+  // We actually need a bit of prev week data to calculate exact deltas on day 1, 
+  // but we can query 7 days prior just for the event generation
+  const priorLogs = await prisma.dailyLog.findMany({
+    where: {
+      date: {
+        gte: prevWeekStarting,
+        lte: weekEnding,
+      },
+    },
+    orderBy: { date: 'asc' },
+  });
+  
+  const allEvents = generateRecoveryEvents(priorLogs, workouts);
+  const timelineEvents = selectTimelineEvents(allEvents);
+
+  const eventsByDate = new Map<string, typeof timelineEvents>();
+  for (const e of timelineEvents) {
+    if (!eventsByDate.has(e.date)) eventsByDate.set(e.date, []);
+    eventsByDate.get(e.date)!.push(e);
+  }
+
+  const workoutDates = new Set(workouts.map(w => formatDayKey(w.date)));
+
+  const timelineDays = dailyLogs.map(l => {
+    const dStr = formatDayKey(l.date);
+    const dayWorkouts = workoutDates.has(dStr);
+    const dayEvents = (eventsByDate.get(dStr) || []).map(e => ({
+      headline: e.headline,
+      severity: e.severity
+    }));
+    
+    return {
+      date: l.date.toISOString(),
+      pain: l.pain,
+      reflux: l.reflux,
+      walked: l.walkedToday,
+      hasWorkout: dayWorkouts,
+      sleepHours: l.sleepHours,
+      sittingBreaksActual: l.sittingBreaksActual,
+      sittingBreaksTarget: l.sittingBreaksTarget,
+      notes: l.notes,
+      events: dayEvents,
+    };
+  }).reverse(); // Reverse chronological for timeline
 
   return {
     weekStarting: weekStarting.toISOString(),
@@ -214,11 +275,6 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
       worsened,
       nextWeekFocus,
     },
-    dailyLogs: dailyLogs.map(l => ({
-      date: l.date.toISOString(),
-      pain: l.pain,
-      walked: l.walkedToday,
-      reflux: l.reflux,
-    })),
+    timelineDays,
   };
 }

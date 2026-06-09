@@ -11,7 +11,7 @@ export interface SetData {
 interface ExerciseCardProps {
   exercise: { id: number; name: string };
   sets: SetData[];
-  lastSession?: SetData[] | null;
+  lastSession?: { date: string; sets: SetData[] } | null;
   onChange: (sets: SetData[]) => void;
 }
 
@@ -50,7 +50,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
   };
 
   // Helper to format last session's sets
-  const formatLastSession = (prevSets: SetData[] | null | undefined): string => {
+  const formatLastSessionSets = (prevSets: SetData[]): string => {
     if (!prevSets || prevSets.length === 0) return 'No previous data';
     
     const weights = prevSets.map(s => s.weight);
@@ -59,14 +59,20 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
     
     if (allWeightsSame && weights[0] !== null) {
       const repsStr = prevSets.map(s => s.reps).join(', ');
-      const rpeStr = rpes.length > 0 ? ` @ RPE ${rpes.join(', ')}` : '';
+      const rpeStr = rpes.length > 0 ? ` @ ${rpes[0]}` : ''; // Just show first RPE if all same weight
       return `${weights[0]}kg × ${repsStr}${rpeStr}`;
     } else {
       return prevSets.map((s, idx) => {
         const wStr = s.weight !== null ? `${s.weight}kg` : '--';
-        const rpeStr = s.rpe !== null ? `@RPE ${s.rpe}` : '';
+        const rpeStr = s.rpe !== null ? `@${s.rpe}` : '';
         return `S${idx + 1}: ${wStr}×${s.reps}${rpeStr ? ' ' + rpeStr : ''}`;
       }).join(', ');
+    }
+  };
+
+  const handleCopyLast = () => {
+    if (lastSession && lastSession.sets.length > 0) {
+      onChange([...lastSession.sets.map(s => ({ ...s }))]);
     }
   };
 
@@ -89,7 +95,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
         {/* Rows */}
         <div className="space-y-1">
           {sets.map((set, idx) => {
-            const lastSet = lastSession?.[idx];
+            const lastSet = lastSession?.sets[idx];
             return (
               <div key={idx} className="grid grid-cols-[30px_1fr_1fr_1fr_30px] gap-2 items-center px-2 py-1.5 hover:bg-bg-card-hover rounded-lg group transition-colors">
                 <div className="text-[13px] font-mono text-text-secondary">{idx + 1}</div>
@@ -148,9 +154,30 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-border/40">
-        <span className="text-[11px] text-text-tertiary font-mono">
-          Last session: {formatLastSession(lastSession)}
-        </span>
+        <div className="flex-1 flex flex-col gap-1">
+          {lastSession && lastSession.sets.length > 0 ? (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-text-tertiary">Last Session</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] text-text-secondary font-mono">
+                  {formatLastSessionSets(lastSession.sets)}
+                </span>
+                <span className="text-[11px] text-text-tertiary">
+                  ({new Date(lastSession.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyLast}
+                  className="ml-2 text-[10px] uppercase tracking-wide font-bold text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                >
+                  Copy Last
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span className="text-[11px] text-text-tertiary font-mono">No previous data</span>
+          )}
+        </div>
         <button
           id={`add-set-btn-${exercise.id}`}
           type="button"

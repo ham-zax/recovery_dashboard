@@ -16,7 +16,7 @@ interface Exercise {
 
 interface WorkoutFormProps {
   exercises: Exercise[];
-  lastSessions: Record<number, SetData[]>;
+  lastSessions: Record<number, { date: string; sets: SetData[] } | null>;
 }
 
 export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
@@ -42,9 +42,9 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
     const initial: Record<number, SetData[]> = {};
     exercises.forEach((ex) => {
       initial[ex.id] = [
-        { weight: null, reps: 10, rpe: null },
-        { weight: null, reps: 10, rpe: null },
-        { weight: null, reps: 10, rpe: null },
+        { weight: null, reps: 0, rpe: null },
+        { weight: null, reps: 0, rpe: null },
+        { weight: null, reps: 0, rpe: null },
       ];
     });
     return initial;

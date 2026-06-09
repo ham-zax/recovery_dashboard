@@ -33,6 +33,11 @@ interface DashboardResponse {
     trend: string;
     compliance: string;
   };
+  events: {
+    headline: string;
+    date: string;
+    severity: 'positive' | 'negative' | 'neutral';
+  }[];
   chartData: {
     date: string;
     displayDate: string;
@@ -150,6 +155,29 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
           <section className="w-full">
             <RecoveryScore state={data.recoveryState} />
           </section>
+
+          {/* Recent Recovery Events */}
+          {data.events && data.events.length > 0 && (
+            <section className="w-full">
+              <h2 className="text-section-header mb-4">Recent Events</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {data.events.map((event, i) => (
+                  <div key={i} className="bg-bg-card border border-border rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+                    <span className="text-[10px] text-text-tertiary font-mono uppercase tracking-wider">
+                      {event.date}
+                    </span>
+                    <span className={`text-[13px] font-medium ${
+                      event.severity === 'positive' ? 'text-accent-green' :
+                      event.severity === 'negative' ? 'text-accent-red' :
+                      'text-text-primary'
+                    }`}>
+                      {event.headline}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Supporting Drivers */}
           <section className="w-full">
