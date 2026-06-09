@@ -29,6 +29,10 @@ export function startOfDayUtc(date: Date | string): Date {
   return new Date(Date.UTC(y, m - 1, d));
 }
 
+/**
+ * Only for UTC-midnight logical dates.
+ * Not for general timestamps, as it shifts the real timestamp to trick the local calendar formatter.
+ */
 export function formatUtc(date: Date | string, formatStr: string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const adjusted = new Date(d.getTime() + d.getTimezoneOffset() * 60 * 1000);

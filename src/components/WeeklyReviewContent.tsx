@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, addDays } from 'date-fns';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatUtc, startOfDayUtc } from '@/lib/validation';
 import { getRecoveryStatus } from '@/lib/score';
@@ -28,18 +28,18 @@ export function WeeklyReviewContent({
   // Generate all 12 weeks (memoized to avoid reconstruction on every reflection input keystroke)
   const weeks = useMemo(() => {
     const [y, m, d] = protocolStartDateStr.split('-').map(Number);
-    const protocolStartDate = new Date(y, m - 1, d);
+    const protocolStartDate = new Date(Date.UTC(y, m - 1, d));
     const totalWeeks = Math.ceil(totalDurationDays / 7);
     return Array.from({ length: totalWeeks }).map((_, index) => {
-      const weekStart = addDays(protocolStartDate, index * 7);
-      const weekEnd = addDays(weekStart, 6);
+      const weekStart = new Date(protocolStartDate.getTime() + index * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
       return {
         index,
         label: `Week ${index + 1}`,
         startDate: weekStart,
         endDate: weekEnd,
-        startDateStr: format(weekStart, 'yyyy-MM-dd'),
-        rangeStr: `${format(weekStart, 'MMM dd')} – ${format(weekEnd, 'MMM dd, yyyy')}`,
+        startDateStr: weekStart.toISOString().split('T')[0],
+        rangeStr: `${formatUtc(weekStart, 'MMM dd')} – ${formatUtc(weekEnd, 'MMM dd, yyyy')}`,
       };
     });
   }, [protocolStartDateStr, totalDurationDays]);
@@ -268,7 +268,7 @@ export function WeeklyReviewContent({
         >
           {weeks.map((w) => (
             <option key={w.index} value={w.index}>
-              {w.label} ({format(w.startDate, 'MMM dd')} – {format(w.endDate, 'MMM dd')})
+              {w.label} ({formatUtc(w.startDate, 'MMM dd')} – {formatUtc(w.endDate, 'MMM dd')})
             </option>
           ))}
         </select>

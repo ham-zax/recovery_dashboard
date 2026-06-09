@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -15,12 +16,12 @@ model DailyLog {
   walkedToday         Boolean
   strengthToday       Boolean
   sleepHours          Float
-  sittingBreaksActual Int       @default(0)
+  sittingBreaksActual Int      @default(0)
   notes               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   protocolId          Int
-  protocol            Protocol  @relation(fields: [protocolId], references: [id])
+  protocol            Protocol @relation(fields: [protocolId], references: [id])
 }
 
 model WorkoutSession {
@@ -88,7 +89,7 @@ model Protocol {
   version         String           @unique
   walkingTarget   Int              @default(1)
   sittingTarget   Int              @default(10)
-  recoveryWeights String?          // Stored as JSON string
+  recoveryWeights String? // Stored as JSON string
   workoutSchedule String           @default("{\"mon\":\"LOWER\",\"tue\":\"UPPER\",\"wed\":\"REST\",\"thu\":\"LOWER\",\"fri\":\"UPPER\",\"sat\":\"REST\",\"sun\":\"REST\"}")
   active          Boolean          @default(false)
   startedAt       DateTime         @default(now())
@@ -98,12 +99,14 @@ model Protocol {
   logs            DailyLog[]
   workouts        WorkoutSession[]
 
-  changesFrom     ProtocolChange[] @relation("FromProtocol")
-  changesTo       ProtocolChange[] @relation("ToProtocol")
+  changesFrom ProtocolChange[] @relation("FromProtocol")
+  changesTo   ProtocolChange[] @relation("ToProtocol")
 
-  clonedFromId    Int?
-  clonedFrom      Protocol?        @relation("ProtocolClones", fields: [clonedFromId], references: [id])
-  clones          Protocol[]       @relation("ProtocolClones")
+  clonedFromId Int?
+  clonedFrom   Protocol?  @relation("ProtocolClones", fields: [clonedFromId], references: [id])
+  clones       Protocol[] @relation("ProtocolClones")
+
+  @@unique([active], name: "unique_active_protocol", map: "unique_active_protocol", where: { active: true })
 }
 
 model ProtocolChange {
@@ -112,11 +115,11 @@ model ProtocolChange {
   toProtocolId   Int
   changedAt      DateTime @default(now())
   reason         String?
-  notes          String?  // Document detailed reasoning behind configuration shifts
-  changes        String   // Stored as JSON string
+  notes          String? // Document detailed reasoning behind configuration shifts
+  changes        String // Stored as JSON string
 
-  fromProtocol   Protocol @relation("FromProtocol", fields: [fromProtocolId], references: [id])
-  toProtocol     Protocol @relation("ToProtocol", fields: [toProtocolId], references: [id])
+  fromProtocol Protocol @relation("FromProtocol", fields: [fromProtocolId], references: [id])
+  toProtocol   Protocol @relation("ToProtocol", fields: [toProtocolId], references: [id])
 }
 
 model Setting {
