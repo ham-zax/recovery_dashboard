@@ -9,7 +9,11 @@
     "lint": "eslint",
     "verify": "tsx scripts/verify-dashboard.ts",
     "verify:speed": "tsx scripts/verify-navigation-speed.ts",
-    "test": "npm run lint && npm run build && npm run verify",
+    "verify:invariants": "tsx scripts/verify-invariants.ts",
+    "verify:lock": "tsx scripts/verify-protocol-lock.ts",
+    "verify:empty": "tsx scripts/verify-empty-db.ts",
+    "verify-all": "npm run verify && npm run verify:invariants && npm run verify:lock && npm run verify:empty",
+    "test": "npm run lint && npm run build && npm run verify-all",
     "postinstall": "prisma generate"
   },
   "dependencies": {

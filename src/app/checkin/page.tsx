@@ -26,11 +26,13 @@ export default async function CheckInPage() {
     take: 3,
   });
 
-  // Fetch sitting_breaks_target setting
-  const targetSetting = await prisma.setting.findUnique({
-    where: { key: 'sitting_breaks_target' },
+  // Fetch active protocol for sittingTarget
+  const activeProtocol = await prisma.protocol.findFirst({
+    where: { active: true },
+    select: { sittingTarget: true }
   });
-  const sittingBreaksTarget = targetSetting ? parseInt(targetSetting.value, 10) : 10;
+
+  const sittingBreaksTarget = activeProtocol?.sittingTarget || 10;
 
   // Prepare initial data if today's check-in exists
   const initialData = todayCheckIn

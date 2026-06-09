@@ -43,6 +43,15 @@ export function validateWeights(weights: unknown): ScoreWeights {
   return DEFAULT_WEIGHTS;
 }
 
+export function parseRecoveryWeights(jsonString: string | null | undefined): ScoreWeights {
+  if (!jsonString) return DEFAULT_WEIGHTS;
+  try {
+    return validateWeights(JSON.parse(jsonString));
+  } catch {
+    return DEFAULT_WEIGHTS;
+  }
+}
+
 export type RecoveryStatus = 'Ready' | 'Recovering' | 'Needs Attention' | 'Need Check-in' | 'Insufficient Data';
 
 export interface RecoveryState {

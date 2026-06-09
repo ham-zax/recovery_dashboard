@@ -1,5 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
-import { PrismaClient } from '../src/generated/prisma/client';
+import { PrismaClient } from '../src/generated/prisma';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import path from 'path';
 import fs from 'fs';
@@ -193,8 +193,8 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        settings: {
-          recovery_score_weights: '{"walking":50,"strength":10,"sleep":20,"sitting":10,"checkins":10}',
+        protocol: {
+          recoveryWeights: { walking: 50, strength: 10, sleep: 20, sitting: 10, checkins: 10 },
         },
       }),
     });
@@ -253,12 +253,12 @@ async function runTests() {
   // We send two concurrent updates to change settings
   const payload1 = {
     settings: {
-      protocol_start_date: '2025-01-01',
+      theme_mode: 'dark',
     },
   };
   const payload2 = {
     settings: {
-      protocol_start_date: '2025-01-02',
+      theme_mode: 'light',
     },
   };
 
@@ -282,18 +282,74 @@ async function runTests() {
     throw new Error('One of the concurrent settings mutation requests failed.');
   }
 
-  // Assert database final state is consistent (either 12 or 15)
+  // Assert database final state is consistent
   const finalSetting = await prisma.setting.findUnique({
-    where: { key: 'protocol_start_date' },
+    where: { key: 'theme_mode' },
   });
   
   console.log(`  - Final setting value in database: ${finalSetting?.value}`);
-  if (finalSetting?.value !== '2025-01-01' && finalSetting?.value !== '2025-01-02') {
+  if (finalSetting?.value !== 'dark' && finalSetting?.value !== 'light') {
     throw new Error(`Database left in inconsistent state after concurrent writes: ${finalSetting?.value}`);
   }
   console.log('✓ Concurrent Mutation Write Integrity Probe executed successfully.');
 
+  // ----------------------------------------------------
+  // Test 6: Empty Database Fallback (Dashboard & Review)
+  // ----------------------------------------------------
+  console.log('\n[Test 6] Verifying endpoints with an empty database...');
+  
+  // We'll spawn a temporary server with an empty db to check
+  const emptyDbPath = path.resolve(process.cwd(), 'empty-verify.db');
+  if (fs.existsSync(emptyDbPath)) fs.unlinkSync(emptyDbPath);
+  
+  // Push schema
+  const { execSync } = await import('child_process');
+  execSync(`npx prisma db push --schema=prisma/schema.prisma`, { 
+    env: { ...process.env, DATABASE_URL: `file:${emptyDbPath}` }
+  });
+
+  const EMPTY_PORT = 3006;
+  const emptyDevServer = spawn('npx', ['next', 'start', '-p', String(EMPTY_PORT)], {
+    env: { ...process.env, DATABASE_URL: `file:${emptyDbPath}` },
+    stdio: 'ignore',
+    shell: true,
+  });
+
+  try {
+    const isReady = await waitForServerSpecific(emptyDevServer, EMPTY_PORT);
+    if (!isReady) throw new Error('Failed to start empty Next.js dev server.');
+
+    const emptyDashRes = await fetch(`http://localhost:${EMPTY_PORT}/api/dashboard?days=7`);
+    if (emptyDashRes.status !== 200) throw new Error(`Empty Dashboard API failed: ${emptyDashRes.status}`);
+    const emptyDashData = await emptyDashRes.json();
+    if (emptyDashData.chartData && emptyDashData.chartData.length !== 7) {
+       throw new Error('Empty Dashboard did not return 7 zero-filled days.');
+    }
+
+    const emptyReviewRes = await fetch(`http://localhost:${EMPTY_PORT}/api/review?weekStarting=2024-01-01`);
+    if (emptyReviewRes.status !== 200) throw new Error(`Empty Review API failed: ${emptyReviewRes.status}`);
+    
+    console.log('✓ Empty database fallbacks verified successfully.');
+  } finally {
+    emptyDevServer.kill('SIGTERM');
+    if (fs.existsSync(emptyDbPath)) fs.unlinkSync(emptyDbPath);
+    if (fs.existsSync(emptyDbPath + '-journal')) fs.unlinkSync(emptyDbPath + '-journal');
+  }
+
   console.log('\n--- ALL INVARIANT VERIFICATION TESTS PASSED SUCCESSFULLY ---');
+}
+
+async function waitForServerSpecific(child: ChildProcess, port: number): Promise<boolean> {
+  const maxAttempts = 30;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(`http://localhost:${port}/api/dashboard?days=7`);
+      if (res.status === 200) return true;
+    } catch {}
+    if (child.killed || child.exitCode !== null) return false;
+    await wait(1000);
+  }
+  return false;
 }
 
 async function main() {

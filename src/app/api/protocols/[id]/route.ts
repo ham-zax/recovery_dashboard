@@ -1,15 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { calculateProtocolImpactsBatch } from '@/lib/protocolImpact';
-import { calculateDailyRecovery, validateWeights, DEFAULT_WEIGHTS } from '@/lib/score';
+import { calculateProtocolOutcome } from '@/lib/protocolOutcome';
+import { calculateDailyRecovery, parseRecoveryWeights } from '@/lib/score';
+import { parseWorkoutSchedule } from '@/lib/protocol';
 import { startOfDay } from 'date-fns';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const protocolId = parseInt(params.id, 10);
+    const { id } = await params;
+    const protocolId = parseInt(id, 10);
     if (isNaN(protocolId)) {
       return NextResponse.json({ error: 'Invalid protocol ID' }, { status: 400 });
     }
@@ -24,7 +26,7 @@ export async function GET(
           orderBy: { date: 'asc' },
         },
         // Changes where this is the target protocol (why it was created)
-        fromChanges: {
+        changesTo: {
           include: {
             fromProtocol: true
           }
@@ -36,33 +38,21 @@ export async function GET(
       return NextResponse.json({ error: 'Protocol not found' }, { status: 404 });
     }
 
-    // Impact
-    const impacts = await calculateProtocolImpactsBatch([protocol]);
-    const impact = impacts.get(protocol.id) || null;
+    // Observed Outcome
+    const observedOutcome = await calculateProtocolOutcome(protocol);
 
     // Averages and stats
     const logs = protocol.logs;
     const daysCount = logs.length;
     
     let avgPain = 0, avgReflux = 0, compliance = 0, recoveryScore = 0;
-    
-    const defaultSchedule: Record<string, string> = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
     const dayKeyMap: Record<number, string> = { 0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat' };
 
-    let weights = DEFAULT_WEIGHTS;
-    if (protocol.recoveryWeights) {
-      try {
-        weights = validateWeights(JSON.parse(protocol.recoveryWeights));
-      } catch {}
-    }
+    const weights = parseRecoveryWeights(protocol.recoveryWeights);
+    const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
-    let schedule = defaultSchedule;
-    if (protocol.workoutSchedule) {
-      try {
-        schedule = JSON.parse(protocol.workoutSchedule);
-      } catch {}
-    }
-
+    // Safe because Protocol versions are immutable after the first log is attached.
+    // Therefore, using the current protocol's target/schedule for all its logs is historically accurate.
     if (daysCount > 0) {
       avgPain = logs.reduce((sum, l) => sum + l.pain, 0) / daysCount;
       avgReflux = logs.reduce((sum, l) => sum + l.reflux, 0) / daysCount;
@@ -113,7 +103,7 @@ export async function GET(
         schedule,
         logs,
         workouts: protocol.workouts,
-        changes: protocol.fromChanges,
+        changes: protocol.changesTo,
       },
       stats: {
         days: daysCount,
@@ -121,7 +111,7 @@ export async function GET(
         avgReflux,
         compliance,
         recoveryScore,
-        impact,
+        observedOutcome,
       }
     });
   } catch (error) {

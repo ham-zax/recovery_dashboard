@@ -100,6 +100,10 @@ model Protocol {
 
   changesFrom     ProtocolChange[] @relation("FromProtocol")
   changesTo       ProtocolChange[] @relation("ToProtocol")
+
+  clonedFromId    Int?
+  clonedFrom      Protocol?        @relation("ProtocolClones", fields: [clonedFromId], references: [id])
+  clones          Protocol[]       @relation("ProtocolClones")
 }
 
 model ProtocolChange {

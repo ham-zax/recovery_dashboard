@@ -6,10 +6,11 @@ export const metadata: Metadata = {
   description: 'Detailed analysis of a specific protocol version.',
 };
 
-export default function ProtocolDetailPage({ params }: { params: { id: string } }) {
+export default async function ProtocolDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
     <main className="min-h-screen bg-bg-primary pt-8 px-4 md:px-8">
-      <ProtocolDetailContent protocolId={params.id} />
+      <ProtocolDetailContent protocolId={id} />
     </main>
   );
 }

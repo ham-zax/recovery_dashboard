@@ -3,11 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Target, Activity, CheckCircle2, History, Info, GitMerge } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
+  const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cloning, setCloning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +51,26 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
   const { protocol: p, stats } = data;
   const changes = p.changes && p.changes.length > 0 ? p.changes[0] : null;
 
+  async function handleClone() {
+    if (!confirm('This will create a new protocol version using these settings and activate it immediately. Continue?')) {
+      return;
+    }
+    setCloning(true);
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/clone`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error ?? 'Failed to clone protocol');
+      }
+      router.push('/settings');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error cloning protocol');
+      setCloning(false);
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-24">
       <Link href="/protocols" className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
@@ -67,11 +91,16 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* Rollback action to be implemented later */}
-          <button className="px-4 py-2 bg-bg-card border border-border hover:border-text-secondary text-sm font-semibold rounded-xl text-text-primary transition-all flex items-center gap-2" disabled>
-            <History className="w-4 h-4" />
-            Clone & Activate
-          </button>
+          {!p.active && (
+            <button 
+              onClick={handleClone}
+              disabled={cloning}
+              className="px-4 py-2 bg-bg-card border border-border hover:border-text-secondary text-sm font-semibold rounded-xl text-text-primary transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              <History className="w-4 h-4" />
+              {cloning ? 'Cloning...' : 'Clone & Activate'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -214,50 +243,62 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
               </div>
             </div>
 
-            {stats.impact?.delta && (
-              <div className="px-5 py-6 border-t border-border bg-bg-primary/30">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-                  <h4 className="text-xs text-text-secondary font-semibold uppercase tracking-wider">
-                    Observed Change After Intervention
-                  </h4>
-                  {stats.impact.confidence && (
-                    <div className="flex items-center gap-2 bg-bg-primary px-3 py-1.5 rounded-lg border border-border">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        stats.impact.confidence === 'High' ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' :
-                        stats.impact.confidence === 'Medium' ? 'bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/20' :
-                        'bg-accent-red/10 text-accent-red border border-accent-red/20'
-                      }`}>
-                        {stats.impact.confidence} Confidence
-                      </span>
-                    </div>
-                  )}
+            {stats.observedOutcome && stats.observedOutcome.observedOutcome !== 'Insufficient Data' && stats.observedOutcome.recoveryDelta !== null && (
+              <div className="bg-bg-secondary border border-border rounded-xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-text-primary">Observed Outcome</h3>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/20">Experimental</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className={`px-2.5 py-1 rounded-full font-medium ${
+                      stats.observedOutcome.confidence === 'High' ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' :
+                      stats.observedOutcome.confidence === 'Medium' ? 'bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/20' :
+                      'bg-bg-tertiary text-text-secondary border border-border'
+                    }`}>
+                      {stats.observedOutcome.confidence} Confidence
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full font-medium ${
+                      stats.observedOutcome.observedOutcome === 'Improving' ? 'bg-accent-green/10 text-accent-green border border-accent-green/20' :
+                      stats.observedOutcome.observedOutcome === 'Worsening' ? 'bg-accent-red/10 text-accent-red border border-accent-red/20' :
+                      'bg-bg-tertiary text-text-secondary border border-border'
+                    }`}>
+                      {stats.observedOutcome.observedOutcome}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Recovery Score Δ</div>
-                    <div className={`text-lg font-mono font-bold ${stats.impact.delta.recoveryScore > 0 ? 'text-accent-green' : stats.impact.delta.recoveryScore < 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
-                      {stats.impact.delta.recoveryScore > 0 ? '+' : ''}{stats.impact.delta.recoveryScore.toFixed(1)}
+                    <div className={`text-lg font-mono font-bold ${stats.observedOutcome.recoveryDelta > 0 ? 'text-accent-green' : stats.observedOutcome.recoveryDelta < 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
+                      {stats.observedOutcome.recoveryDelta > 0 ? '+' : ''}{stats.observedOutcome.recoveryDelta.toFixed(1)}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Pain Δ</div>
-                    <div className={`text-lg font-mono font-bold ${stats.impact.delta.avgPain < 0 ? 'text-accent-green' : stats.impact.delta.avgPain > 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
-                      {stats.impact.delta.avgPain > 0 ? '+' : ''}{stats.impact.delta.avgPain.toFixed(2)}
+                    <div className={`text-lg font-mono font-bold ${stats.observedOutcome.painDelta! < 0 ? 'text-accent-green' : stats.observedOutcome.painDelta! > 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
+                      {stats.observedOutcome.painDelta! > 0 ? '+' : ''}{stats.observedOutcome.painDelta!.toFixed(2)}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Reflux Δ</div>
-                    <div className={`text-lg font-mono font-bold ${stats.impact.delta.avgReflux < 0 ? 'text-accent-green' : stats.impact.delta.avgReflux > 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
-                      {stats.impact.delta.avgReflux > 0 ? '+' : ''}{stats.impact.delta.avgReflux.toFixed(2)}
+                    <div className={`text-lg font-mono font-bold ${stats.observedOutcome.refluxDelta! < 0 ? 'text-accent-green' : stats.observedOutcome.refluxDelta! > 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
+                      {stats.observedOutcome.refluxDelta! > 0 ? '+' : ''}{stats.observedOutcome.refluxDelta!.toFixed(2)}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Compliance Δ</div>
-                    <div className={`text-lg font-mono font-bold ${stats.impact.delta.compliance > 0 ? 'text-accent-green' : stats.impact.delta.compliance < 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
-                      {stats.impact.delta.compliance > 0 ? '+' : ''}{(stats.impact.delta.compliance * 100).toFixed(1)}%
+                    <div className={`text-lg font-mono font-bold ${stats.observedOutcome.complianceDelta! > 0 ? 'text-accent-green' : stats.observedOutcome.complianceDelta! < 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
+                      {stats.observedOutcome.complianceDelta! > 0 ? '+' : ''}{(stats.observedOutcome.complianceDelta! * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {stats.days > 0 && stats.days < 14 && (
+              <div className="px-5 py-4 border-t border-border bg-bg-primary/30 text-sm text-text-tertiary">
+                Need at least 14 days of data to compute observed outcomes (Currently {stats.days}/14).
               </div>
             )}
           </div>

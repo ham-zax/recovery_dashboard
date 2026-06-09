@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { calculateDailyRecovery, validateWeights, DEFAULT_WEIGHTS } from '@/lib/score';
-import { calculateProtocolImpactsBatch } from '@/lib/protocolImpact';
+import { calculateProtocolOutcomeBatch } from '@/lib/protocolOutcome';
+import { parseRecoveryWeights, calculateDailyRecovery } from '@/lib/score';
 import { startOfDay } from 'date-fns';
+import { parseWorkoutSchedule } from '@/lib/protocol';
 
 export async function GET() {
   try {
@@ -18,13 +19,13 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const defaultSchedule: Record<string, string> = { mon: 'LOWER', tue: 'UPPER', wed: 'REST', thu: 'LOWER', fri: 'UPPER', sat: 'REST', sun: 'REST' };
+    // Compute outcomes for all protocols efficiently in one pass
+    const effectivenessMap = await calculateProtocolOutcomeBatch(protocols);
 
     const dayKeyMap: Record<number, string> = {
       0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
     };
 
-    const impacts = await calculateProtocolImpactsBatch(protocols);
 
     const protocolStats = protocols.map(protocol => {
       const logs = protocol.logs;
@@ -40,7 +41,7 @@ export async function GET() {
           avgReflux: 0,
           compliance: 0,
           recoveryScore: 0,
-          impact: null,
+          observedOutcome: null,
         };
       }
 
@@ -53,19 +54,8 @@ export async function GET() {
       });
       const compliance = dailySittingCompliances.reduce((sum, c) => sum + c, 0) / daysCount;
 
-      let weights = DEFAULT_WEIGHTS;
-      if (protocol.recoveryWeights) {
-        try {
-          weights = validateWeights(JSON.parse(protocol.recoveryWeights));
-        } catch {}
-      }
-
-      let schedule = defaultSchedule;
-      if (protocol.workoutSchedule) {
-        try {
-          schedule = JSON.parse(protocol.workoutSchedule);
-        } catch {}
-      }
+      const weights = parseRecoveryWeights(protocol.recoveryWeights);
+      const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
       let totalScore = 0;
       let scoredDays = 0;
@@ -94,7 +84,7 @@ export async function GET() {
 
       const recoveryScore = scoredDays > 0 ? totalScore / scoredDays : 0;
 
-      const impact = impacts.get(protocol.id) || null;
+
 
       return {
         id: protocol.id,
@@ -107,11 +97,13 @@ export async function GET() {
         avgReflux,
         compliance,
         recoveryScore,
-        impact,
+        observedOutcome: effectivenessMap.get(protocol.id) || null,
       };
     });
 
-    return NextResponse.json({ protocols: protocolStats });
+    return NextResponse.json({ 
+      protocols: protocolStats
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 500 });

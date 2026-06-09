@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { isProtocolLocked } from '@/lib/lock';
 import { getActiveProtocol, updateActiveProtocol } from '@/lib/protocol';
+import { format } from 'date-fns';
 
 export async function GET() {
   try {
@@ -153,8 +154,8 @@ export async function POST(request: NextRequest) {
       // Also upsert settings value
       await prisma.setting.upsert({
         where: { key: 'protocol_locked_until' },
-        update: { value: newLockDate.toISOString().split('T')[0] },
-        create: { key: 'protocol_locked_until', value: newLockDate.toISOString().split('T')[0] },
+        update: { value: format(newLockDate, 'yyyy-MM-dd') },
+        create: { key: 'protocol_locked_until', value: format(newLockDate, 'yyyy-MM-dd') },
       });
       if (protocolLock.version) {
         await prisma.setting.upsert({

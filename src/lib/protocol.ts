@@ -2,6 +2,37 @@ import { prisma } from './prisma';
 import { isProtocolLocked } from './lock';
 import { Prisma } from '../generated/prisma';
 
+export function parseWorkoutSchedule(jsonString: string | null | undefined): Record<string, string> {
+  const defaultSchedule = { mon: 'REST', tue: 'REST', wed: 'REST', thu: 'REST', fri: 'REST', sat: 'REST', sun: 'REST' };
+  if (!jsonString) return defaultSchedule;
+  try {
+    return JSON.parse(jsonString);
+  } catch {
+    return defaultSchedule;
+  }
+}
+
+export function parseProtocolChanges(jsonString: string | null | undefined): Record<string, unknown> {
+  if (!jsonString) return {};
+  try {
+    return JSON.parse(jsonString);
+  } catch {
+    return {};
+  }
+}
+
+async function getNextVersion(tx: Prisma.TransactionClient): Promise<string> {
+  const lastProtocol = await tx.protocol.findFirst({
+    orderBy: { id: 'desc' }
+  });
+  if (!lastProtocol) return 'v1';
+  const match = lastProtocol.version.match(/v(\d+)/);
+  if (match) {
+    return `v${parseInt(match[1], 10) + 1}`;
+  }
+  return `v${lastProtocol.id + 1}`;
+}
+
 export async function getActiveProtocol() {
   let protocol = await prisma.protocol.findFirst({
     where: { active: true },
@@ -47,14 +78,9 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput, rea
   }
 
   // Otherwise, create a new version
-  // v1.0 -> v1.1
-  const match = active.version.match(/v(\d+)\.(\d+)/);
-  const nextVersion = match 
-    ? `v${match[1]}.${parseInt(match[2], 10) + 1}` 
-    : `${active.version}.1`;
-
   // Run in transaction to ensure atomic switch
   const result = await prisma.$transaction(async (tx) => {
+    const nextVersion = await getNextVersion(tx);
     // Close current
     await tx.protocol.update({
       where: { id: active.id },
@@ -130,4 +156,53 @@ export async function activateProtocol(id: number) {
       data: { active: true } 
     })
   ]);
+}
+
+export async function cloneProtocol(sourceId: number, reason?: string, notes?: string) {
+  if (await isProtocolLocked()) {
+    throw new Error('Protocol is currently locked and cannot be cloned/activated.');
+  }
+
+  const source = await prisma.protocol.findUnique({ where: { id: sourceId } });
+  if (!source) throw new Error('Source protocol not found');
+
+  const active = await getActiveProtocol();
+
+  return prisma.$transaction(async (tx) => {
+    const nextVersion = await getNextVersion(tx);
+
+    // Close current
+    await tx.protocol.updateMany({
+      where: { active: true },
+      data: { active: false, endedAt: new Date() }
+    });
+
+    // Create new
+    const newProtocol = await tx.protocol.create({
+      data: {
+        version: nextVersion,
+        active: true,
+        startedAt: new Date(),
+        walkingTarget: source.walkingTarget,
+        sittingTarget: source.sittingTarget,
+        recoveryWeights: source.recoveryWeights,
+        workoutSchedule: source.workoutSchedule,
+        clonedFromId: source.id,
+      }
+    });
+
+    // Create ProtocolChange (shows the jump from the currently active protocol to the cloned state)
+    // Note: fromProtocol is what was active, but changes reflect a clone from source
+    await tx.protocolChange.create({
+      data: {
+        fromProtocolId: active.id,
+        toProtocolId: newProtocol.id,
+        changes: JSON.stringify({ action: `cloned from ${source.version}` }),
+        reason: reason || null,
+        notes: notes || null,
+      }
+    });
+
+    return newProtocol;
+  });
 }

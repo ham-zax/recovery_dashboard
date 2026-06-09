@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface Exercise {
   id: number;
@@ -13,11 +14,11 @@ interface Exercise {
 }
 
 interface ScoreWeights {
+  pain: number;
+  reflux: number;
   walking: number;
+  compliance: number;
   strength: number;
-  sleep: number;
-  sitting: number;
-  checkins: number;
 }
 
 interface WorkoutSchedule {
@@ -73,7 +74,7 @@ export function SettingsContent() {
     if (protocol && protocol.recoveryWeights) {
       return protocol.recoveryWeights;
     }
-    return { walking: 30, strength: 25, sleep: 20, sitting: 15, checkins: 10 };
+    return { pain: 25, reflux: 15, walking: 25, compliance: 15, strength: 20 };
   };
 
   const getSchedule = (): WorkoutSchedule => {
@@ -112,13 +113,14 @@ export function SettingsContent() {
 
       if (settingsData.protocolLock) {
         setLockVersion(settingsData.protocolLock.version);
-        setLockDate(settingsData.protocolLock.lockedUntil.split('T')[0]);
+        setLockDate(format(new Date(settingsData.protocolLock.lockedUntil), 'yyyy-MM-dd'));
         setLockDescription(settingsData.protocolLock.description ?? '');
       } else {
-        // default lock date: 6 weeks from today
-        const defaultDate = new Date();
-        defaultDate.setDate(defaultDate.getDate() + 42);
-        setLockDate(defaultDate.toISOString().split('T')[0]);
+        if (!settingsData.settings['protocol_locked_until']) {
+          const defaultDate = new Date();
+          defaultDate.setDate(defaultDate.getDate() + 14);
+          setLockDate(format(defaultDate, 'yyyy-MM-dd'));
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch settings');
@@ -168,7 +170,7 @@ export function SettingsContent() {
   const handleSaveSettings = async () => {
     // Validate weights sum to 100
     const w = getWeights();
-    const sum = w.walking + w.strength + w.sleep + w.sitting + w.checkins;
+    const sum = w.pain + w.reflux + w.walking + w.compliance + w.strength;
     if (sum !== 100) {
       setSaveStatus('error');
       setSaveErrorMessage(`Recovery Score weights must sum to exactly 100%. Currently: ${sum}%`);
@@ -337,7 +339,7 @@ export function SettingsContent() {
   const w = getWeights();
   const sch = getSchedule();
   const locked = isProtocolLocked();
-  const weightsSum = w.walking + w.strength + w.sleep + w.sitting + w.checkins;
+  const weightsSum = w.pain + w.reflux + w.walking + w.compliance + w.strength;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-24">
@@ -401,7 +403,7 @@ export function SettingsContent() {
                       type="date"
                       value={lockDate}
                       onChange={(e) => setLockDate(e.target.value)}
-                      min={lock ? lock.lockedUntil.split('T')[0] : undefined}
+                      min={lock ? format(new Date(lock.lockedUntil), 'yyyy-MM-dd') : undefined}
                       className="w-full bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
                     />
                   </div>
@@ -569,11 +571,11 @@ export function SettingsContent() {
             
             <div className="flex flex-col divide-y divide-border">
               {[
+                { key: 'pain', label: 'Pain' },
+                { key: 'reflux', label: 'Reflux' },
                 { key: 'walking', label: 'Walking compliance' },
+                { key: 'compliance', label: 'Sitting breaks compliance' },
                 { key: 'strength', label: 'Strength workout compliance' },
-                { key: 'sleep', label: 'Sleep hours (8h target)' },
-                { key: 'sitting', label: 'Sitting breaks' },
-                { key: 'checkins', label: 'Check-in completion rate' },
               ].map((item) => {
                 const k = item.key as keyof ScoreWeights;
                 return (
