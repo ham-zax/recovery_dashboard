@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { calculateProtocolOutcome } from '@/lib/protocolOutcome';
 import { calculateDailyRecovery, parseRecoveryWeights } from '@/lib/score';
 import { parseWorkoutSchedule } from '@/lib/protocol';
-import { startOfDay } from 'date-fns';
+import { startOfDayUtc } from '@/lib/validation';
 
 export async function GET(
   request: Request,
@@ -67,11 +67,11 @@ export async function GET(
       let scoredDays = 0;
 
       for (const log of logs) {
-        const d = startOfDay(new Date(log.date));
-        const dayKey = dayKeyMap[d.getDay()];
+        const d = startOfDayUtc(log.date);
+        const dayKey = dayKeyMap[d.getUTCDay()];
         const scheduledType = schedule[dayKey];
         const strengthScheduled = !!(scheduledType && scheduledType !== 'REST');
-        const strengthCompleted = protocol.workouts.some(w => startOfDay(new Date(w.date)).getTime() === d.getTime());
+        const strengthCompleted = protocol.workouts.some(w => startOfDayUtc(w.date).getTime() === d.getTime());
 
         const scoreLog = {
           pain: log.pain,

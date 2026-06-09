@@ -45,8 +45,9 @@ async function main() {
         for (const stmt of statements) {
           try {
             await client.execute(stmt);
-          } catch (e: any) {
-            if (!e.message.includes('already exists') && !e.message.includes('duplicate column')) {
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            if (!message.includes('already exists') && !message.includes('duplicate column')) {
               throw e;
             }
           }

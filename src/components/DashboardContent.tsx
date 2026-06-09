@@ -44,7 +44,7 @@ interface DashboardResponse {
     pain: number | null;
     walked: number | null;
     reflux: number | null;
-    compliance: number;
+    compliance: number | null;
   }[];
 }
 

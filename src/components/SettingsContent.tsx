@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { parseBoundedInt } from '@/lib/validation';
 
-interface Exercise {
+export interface Exercise {
   id: number;
   name: string;
   category: 'LOWER' | 'UPPER';
@@ -14,7 +14,7 @@ interface Exercise {
   active: boolean;
 }
 
-interface ScoreWeights {
+export interface ScoreWeights {
   pain: number;
   reflux: number;
   walking: number;
@@ -22,7 +22,7 @@ interface ScoreWeights {
   strength: number;
 }
 
-interface WorkoutSchedule {
+export interface WorkoutSchedule {
   mon: string;
   tue: string;
   wed: string;
@@ -32,7 +32,7 @@ interface WorkoutSchedule {
   sun: string;
 }
 
-interface ProtocolState {
+export interface ProtocolState {
   id: number;
   version: string;
   walkingTarget: number;
@@ -46,18 +46,20 @@ export function SettingsContent({
   initialSettings,
   initialProtocol,
   initialLock,
-  initialExercises
+  initialExercises,
+  defaultLockDate
 }: {
   initialSettings: Record<string, string>;
   initialProtocol: ProtocolState;
   initialLock: { version: string; lockedUntil: string; description: string } | null;
   initialExercises: Exercise[];
+  defaultLockDate: string;
 }) {
   const router = useRouter();
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const exercises = initialExercises;
   const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
   const [protocol, setProtocol] = useState<ProtocolState | null>(initialProtocol);
-  const [lock, setLock] = useState<{ version: string; lockedUntil: string; description: string } | null>(initialLock);
+  const lock = initialLock;
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>('');
@@ -74,27 +76,13 @@ export function SettingsContent({
   const [lockDate, setLockDate] = useState<string>(
     initialLock 
       ? format(new Date(initialLock.lockedUntil), 'yyyy-MM-dd') 
-      : (initialSettings['protocol_locked_until'] || format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
+      : (initialSettings['protocol_locked_until'] || defaultLockDate)
   );
   const [lockDescription, setLockDescription] = useState<string>(initialLock?.description || 'Execute one protocol consistently.');
 
   // Protocol Change state
   const [changeReason, setChangeReason] = useState<string>('');
   const [changeNotes, setChangeNotes] = useState<string>('');
-
-  useEffect(() => {
-    setExercises(initialExercises);
-    setSettings(initialSettings);
-    setProtocol(initialProtocol);
-    setLock(initialLock);
-    setLockVersion(initialLock?.version || 'v1.0');
-    setLockDate(
-      initialLock 
-        ? format(new Date(initialLock.lockedUntil), 'yyyy-MM-dd') 
-        : (initialSettings['protocol_locked_until'] || format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'))
-    );
-    setLockDescription(initialLock?.description || 'Execute one protocol consistently.');
-  }, [initialExercises, initialSettings, initialProtocol, initialLock]);
 
   // Parse state helper
   const getWeights = (): ScoreWeights => {

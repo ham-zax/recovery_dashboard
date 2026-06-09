@@ -1,6 +1,7 @@
-import { SettingsContent } from '@/components/SettingsContent';
+import { SettingsContent, Exercise, ProtocolState, ScoreWeights, WorkoutSchedule } from '@/components/SettingsContent';
 import { prisma } from '@/lib/prisma';
 import { getActiveProtocol } from '@/lib/protocol';
+import { format, addDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,13 +27,13 @@ export default async function SettingsPage() {
     return acc;
   }, {} as Record<string, string>);
 
-  const protocolProps = {
+  const protocolProps: ProtocolState = {
     id: protocol.id,
     version: protocol.version,
     walkingTarget: protocol.walkingTarget,
     sittingTarget: protocol.sittingTarget,
-    recoveryWeights: protocol.recoveryWeights ? JSON.parse(protocol.recoveryWeights) : undefined,
-    workoutSchedule: protocol.workoutSchedule ? JSON.parse(protocol.workoutSchedule) : undefined,
+    recoveryWeights: protocol.recoveryWeights ? (JSON.parse(protocol.recoveryWeights) as ScoreWeights) : undefined,
+    workoutSchedule: protocol.workoutSchedule ? (JSON.parse(protocol.workoutSchedule) as WorkoutSchedule) : undefined,
     active: protocol.active,
   };
 
@@ -42,12 +43,36 @@ export default async function SettingsPage() {
     description: lock.description || '',
   } : null;
 
+  const exercisesProps: Exercise[] = exercises.map(ex => {
+    if (ex.category !== 'LOWER' && ex.category !== 'UPPER') {
+      throw new Error(`Invalid exercise category: ${ex.category}`);
+    }
+    return {
+      id: ex.id,
+      name: ex.name,
+      category: ex.category,
+      sortOrder: ex.sortOrder,
+      active: ex.active
+    };
+  });
+
+  const defaultLockDate = format(addDays(new Date(), 14), 'yyyy-MM-dd');
+
+  const compositeKey = JSON.stringify({
+    settings: settingsMap,
+    protocol: protocolProps,
+    lock: lockProps,
+    exercises: exercisesProps,
+  });
+
   return (
     <SettingsContent 
+      key={compositeKey}
       initialSettings={settingsMap}
-      initialProtocol={protocolProps as any}
+      initialProtocol={protocolProps}
       initialLock={lockProps}
-      initialExercises={exercises as any}
+      initialExercises={exercisesProps}
+      defaultLockDate={defaultLockDate}
     />
   );
 }

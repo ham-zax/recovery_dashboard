@@ -25,7 +25,7 @@ ChartJS.register(
 interface ChartDataPoint {
   date: string;
   displayDate: string;
-  compliance: number;
+  compliance: number | null;
 }
 
 interface ComplianceChartProps {
@@ -40,7 +40,7 @@ export function ComplianceChart({ data, title = "Compliance Trend" }: Compliance
     labels,
     datasets: [
       {
-        label: 'Daily Check-In Compliance (%)',
+        label: 'Sitting Breaks Compliance (%)',
         data: data.map((d) => d.compliance),
         backgroundColor: 'rgba(91, 154, 116, 0.2)', // muted sage with opacity
         borderColor: '#5B9A74', // muted sage

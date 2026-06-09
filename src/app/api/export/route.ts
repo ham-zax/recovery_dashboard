@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { format } from 'date-fns';
+import { formatUtc } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const formatType = searchParams.get('format') ?? 'json';
-    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const dateStr = formatUtc(new Date(), 'yyyy-MM-dd');
 
     if (formatType === 'csv') {
       // Export Daily Logs as CSV
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
       const csvRows = logs.map(l => {
         const row = [
-          format(l.date, 'yyyy-MM-dd'),
+          formatUtc(l.date, 'yyyy-MM-dd'),
           l.pain,
           l.reflux,
           l.walkedToday ? 'Yes' : 'No',

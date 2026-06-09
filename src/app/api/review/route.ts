@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { startOfDay, endOfDay, addDays } from 'date-fns';
 import { ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 import { getWeeklyReviewData, computeStatsForPeriod } from '@/lib/reviewData';
 
@@ -31,8 +30,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'weekStarting date is required' }, { status: 400 });
     }
 
-    const weekStarting = startOfDay(new Date(weekStartingStr));
-    const weekEnding = endOfDay(addDays(weekStarting, 6));
+    const [y, m, d] = weekStartingStr.split('T')[0].split('-').map(Number);
+    const weekStarting = new Date(Date.UTC(y, m - 1, d));
+    const weekEnding = new Date(Date.UTC(y, m - 1, d + 6, 23, 59, 59, 999));
 
     const { getActiveProtocol } = await import('@/lib/protocol');
     const protocol = await getActiveProtocol();
@@ -56,7 +56,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Recompute current stats to save snapshot
-    const stats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule);
+    const logs = await prisma.dailyLog.findMany({
+      where: { date: { gte: weekStarting, lte: weekEnding } },
+      include: { protocol: true }
+    });
+    const workouts = await prisma.workoutSession.findMany({
+      where: { date: { gte: weekStarting, lte: weekEnding } }
+    });
+    const stats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule, logs, workouts);
 
     const manualNotes = JSON.stringify({
       improved: improved ?? '',

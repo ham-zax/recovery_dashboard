@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
-import { startOfDay, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { getActiveProtocol } from '@/lib/protocol';
+import { startOfDayUtc } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (date) {
       // Get single day
       const log = await prisma.dailyLog.findUnique({
-        where: { date: startOfDay(new Date(date)) },
+        where: { date: startOfDayUtc(date) },
       });
       return Response.json(log);
     }
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get last N days
     const logs = await prisma.dailyLog.findMany({
       where: {
-        date: { gte: startOfDay(subDays(new Date(), days)) },
+        date: { gte: subDays(startOfDayUtc(new Date()), days) },
       },
       orderBy: { date: 'desc' },
     });
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (isNaN(sittingBreaksActual) || sittingBreaksActual < 0) return Response.json({ error: 'Breaks must be non-negative' }, { status: 400 });
 
 
-    const date = startOfDay(new Date(body.date ?? new Date()));
+    const date = startOfDayUtc(body.date ?? new Date());
     const protocol = await getActiveProtocol();
 
     const log = await prisma.dailyLog.upsert({

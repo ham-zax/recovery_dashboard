@@ -87,9 +87,10 @@ interface CheckInInitialData {
 interface CheckInFormProps {
   initialData?: CheckInInitialData | null;
   sittingBreaksTarget: number;
+  dateStr: string;
 }
 
-export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormProps) {
+export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: CheckInFormProps) {
   const router = useRouter();
   const [pain, setPain] = useState<string>(String(initialData?.pain ?? 5));
   const [reflux, setReflux] = useState<string>(String(initialData?.reflux ?? 5));
@@ -132,6 +133,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          date: dateStr,
           pain: Number(pain) || 0,
           reflux: Number(reflux) || 0,
           walkedToday,

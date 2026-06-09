@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatUtc, startOfDayUtc } from '@/lib/validation';
 import { getRecoveryStatus } from '@/lib/score';
 import { getPainState, getRefluxState, getStrengthState } from '@/lib/metricInterpretation';
 import { TrendChart } from './charts/TrendChart';
@@ -26,7 +27,8 @@ export function WeeklyReviewContent({
   const router = useRouter();
   // Generate all 12 weeks (memoized to avoid reconstruction on every reflection input keystroke)
   const weeks = useMemo(() => {
-    const protocolStartDate = new Date(protocolStartDateStr);
+    const [y, m, d] = protocolStartDateStr.split('-').map(Number);
+    const protocolStartDate = new Date(y, m - 1, d);
     const totalWeeks = Math.ceil(totalDurationDays / 7);
     return Array.from({ length: totalWeeks }).map((_, index) => {
       const weekStart = addDays(protocolStartDate, index * 7);
@@ -51,15 +53,15 @@ export function WeeklyReviewContent({
     if (hasReconciled.current) return;
     hasReconciled.current = true;
 
-    const today = new Date();
+    const today = startOfDayUtc(new Date());
     let computedIndex = 0;
     for (let i = 0; i < weeks.length; i++) {
-      if (today >= weeks[i].startDate && today <= new Date(weeks[i].endDate.getTime() + 24 * 60 * 60 * 1000 - 1)) {
+      if (today >= weeks[i].startDate && today <= weeks[i].endDate) {
         computedIndex = i;
         break;
       }
     }
-    if (today > new Date(weeks[weeks.length - 1].endDate.getTime() + 24 * 60 * 60 * 1000 - 1)) {
+    if (today > weeks[weeks.length - 1].endDate) {
       computedIndex = weeks.length - 1;
     }
     
@@ -208,7 +210,7 @@ export function WeeklyReviewContent({
   const timelineDaysNewestFirst = data?.timelineDays ?? [];
   const chartPointsChronological = [...timelineDaysNewestFirst].reverse().map((log) => ({
     date: log.date,
-    displayDate: format(new Date(log.date), 'MMM dd'),
+    displayDate: formatUtc(log.date, 'MMM dd'),
     pain: log.pain,
     walked: log.walked ? 1 : 0,
     reflux: log.reflux,
@@ -487,7 +489,7 @@ export function WeeklyReviewContent({
                   {/* Left: Date & Events */}
                   <div className="sm:w-1/4">
                     <h4 className="text-[15px] font-bold text-text-primary mb-3">
-                      {format(new Date(day.date), 'MMMM d, yyyy')}
+                      {formatUtc(day.date, 'MMMM d, yyyy')}
                     </h4>
                     {day.events.length > 0 ? (
                       <ul className="space-y-1.5">

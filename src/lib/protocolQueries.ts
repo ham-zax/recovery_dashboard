@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { calculateProtocolOutcomeBatch } from './protocolOutcome';
 import { parseRecoveryWeights, calculateDailyRecovery } from './score';
-import { startOfDay } from 'date-fns';
+import { startOfDayUtc } from './validation';
 import { parseWorkoutSchedule, parseProtocolChanges } from './protocol';
 
 export async function getProtocolStats() {
@@ -55,11 +55,11 @@ export async function getProtocolStats() {
     let scoredDays = 0;
 
     for (const log of logs) {
-      const d = startOfDay(new Date(log.date));
-      const dayKey = dayKeyMap[d.getDay()];
+      const d = startOfDayUtc(log.date);
+      const dayKey = dayKeyMap[d.getUTCDay()];
       const scheduledType = schedule[dayKey];
       const strengthScheduled = !!(scheduledType && scheduledType !== 'REST');
-      const strengthCompleted = protocol.workouts.some(w => startOfDay(new Date(w.date)).getTime() === d.getTime());
+      const strengthCompleted = protocol.workouts.some(w => startOfDayUtc(w.date).getTime() === d.getTime());
 
       const scoreLog = {
         pain: log.pain,

@@ -1,5 +1,6 @@
 import { getPainState, getRefluxState } from './metricInterpretation';
-import { format, differenceInCalendarDays } from 'date-fns';
+import { differenceInCalendarDays } from 'date-fns';
+import { formatUtc } from './validation';
 
 interface DailyLogBase {
   id: number;
@@ -38,7 +39,7 @@ export interface RecoveryEvent {
 }
 
 export function formatDayKey(date: string | Date): string {
-  return format(new Date(date), 'yyyy-MM-dd');
+  return formatUtc(date, 'yyyy-MM-dd');
 }
 
 export interface EventSeedState {

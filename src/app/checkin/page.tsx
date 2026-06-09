@@ -1,12 +1,12 @@
-import { startOfDay } from 'date-fns';
 import { format } from 'date-fns';
 import { prisma } from '@/lib/prisma';
 import { CheckInForm } from '@/components/CheckInForm';
+import { startOfDayUtc, formatUtc } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CheckInPage() {
-  const today = startOfDay(new Date());
+  const today = startOfDayUtc(new Date());
 
   // Fetch today's check-in
   const todayCheckIn = await prisma.dailyLog.findUnique({
@@ -47,6 +47,8 @@ export default async function CheckInPage() {
       }
     : null;
 
+  const dateStr = formatUtc(today, 'yyyy-MM-dd');
+
   return (
     <div className="max-w-md mx-auto px-4 pb-24 pt-4">
       {/* Page Title */}
@@ -63,6 +65,7 @@ export default async function CheckInPage() {
         <CheckInForm
           initialData={initialData}
           sittingBreaksTarget={sittingBreaksTarget}
+          dateStr={dateStr}
         />
 
         {/* Previous 3 days card */}
@@ -74,7 +77,7 @@ export default async function CheckInPage() {
             ) : (
               <div className="divide-y divide-border">
                 {previousLogs.map((log) => {
-                  const formattedDate = format(new Date(log.date), 'MMM d');
+                  const formattedDate = formatUtc(log.date, 'MMM d');
                   
                   return (
                     <div key={log.id} className="p-4">

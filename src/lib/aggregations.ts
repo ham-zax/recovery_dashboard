@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
-import { startOfDay, subDays, format, addDays } from 'date-fns';
+import { subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from './score';
 import { getPainState, getRefluxState, getStrengthState } from './metricInterpretation';
 import { generateTrendInsight, generateComplianceInsight } from './dashboardInsights';
 import { eventProvider } from './recoveryEvents';
 import { getActiveProtocol, parseWorkoutSchedule } from './protocol';
+import { startOfDayUtc, formatUtc } from '@/lib/validation';
 
 interface DailyLog {
   id: number;
@@ -35,19 +36,19 @@ function countScheduledWorkouts(startDate: Date, endDate: Date, schedule: Record
   let count = 0;
   const current = new Date(startDate);
   while (current < endDate) {
-    const dayOfWeek = current.getDay();
+    const dayOfWeek = current.getUTCDay();
     const dayKey = dayKeyMap[dayOfWeek];
     const type = schedule[dayKey];
     if (type && type !== 'REST') {
       count++;
     }
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   return count;
 }
 
 export async function getDashboardData(days: number) {
-  const today = startOfDay(new Date());
+  const today = startOfDayUtc(new Date());
   const limitDate = subDays(today, days - 1);
   const prevLimitDate = subDays(today, days * 2 - 1);
 
@@ -121,15 +122,15 @@ export async function getDashboardData(days: number) {
   const expectedWorkouts = countScheduledWorkouts(limitDate, addDays(today, 1), schedule);
 
   // Find today's log for the Recovery Score calculation
-  const todayLog = currentLogs.find(l => startOfDay(new Date(l.date)).getTime() === today.getTime()) || null;
+  const todayLog = currentLogs.find(l => startOfDayUtc(l.date).getTime() === today.getTime()) || null;
   
-  const dayOfWeek = today.getDay();
+  const dayOfWeek = today.getUTCDay();
   const dayKey = dayKeyMap[dayOfWeek];
   const scheduledType = schedule[dayKey];
   const strengthScheduled = scheduledType && scheduledType !== 'REST';
   
   // Did they complete a workout today?
-  const strengthCompleted = currentWorkouts.some(w => startOfDay(new Date(w.date)).getTime() === today.getTime());
+  const strengthCompleted = currentWorkouts.some(w => startOfDayUtc(w.date).getTime() === today.getTime());
 
   const recoveryState = calculateDailyRecovery(todayLog, !!strengthScheduled, strengthCompleted, weights);
 
@@ -208,15 +209,15 @@ export async function getDashboardData(days: number) {
   // Generate chart data for the last `days` days
   const chartData = [];
   for (let i = days - 1; i >= 0; i--) {
-    const d = startOfDay(subDays(today, i));
-    const log = currentLogs.find(l => startOfDay(new Date(l.date)).getTime() === d.getTime());
+    const d = subDays(today, i);
+    const log = currentLogs.find(l => startOfDayUtc(l.date).getTime() === d.getTime());
     chartData.push({
-      date: format(d, 'yyyy-MM-dd'),
-      displayDate: format(d, 'MMM dd'),
+      date: formatUtc(d, 'yyyy-MM-dd'),
+      displayDate: formatUtc(d, 'MMM dd'),
       pain: log ? log.pain : null,
       walked: log ? (log.walkedToday ? 1 : 0) : null,
       reflux: log ? log.reflux : null,
-      compliance: log ? Math.min(100, Math.round((log.sittingBreaksActual / (log.protocol.sittingTarget > 0 ? log.protocol.sittingTarget : 10)) * 100)) : 0,
+      compliance: log ? Math.min(100, Math.round((log.sittingBreaksActual / (log.protocol.sittingTarget > 0 ? log.protocol.sittingTarget : 10)) * 100)) : null,
     });
   }
 
@@ -227,13 +228,14 @@ export async function getDashboardData(days: number) {
   };
 
   // Calculate historical seed state efficiently without unbounded relationship queries
+  const seedLimitDate = subDays(limitDate, 14);
   const pastLogsForSeed = await prisma.dailyLog.findMany({ 
-    where: { date: { lt: limitDate } },
+    where: { date: { lt: limitDate, gte: seedLimitDate } },
     select: { id: true, date: true, walkedToday: true, pain: true, reflux: true },
     orderBy: { date: 'asc' } 
   });
   const pastWorkoutsForSeed = await prisma.workoutSession.findMany({ 
-    where: { date: { lt: limitDate } },
+    where: { date: { lt: limitDate, gte: seedLimitDate } },
     select: { id: true, date: true },
     orderBy: { date: 'asc' } 
   });

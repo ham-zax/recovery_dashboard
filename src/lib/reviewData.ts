@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/prisma';
-import { startOfDay, endOfDay, subDays, addDays } from 'date-fns';
 import { calculateDailyRecovery, ScoreWeights, DEFAULT_WEIGHTS, validateWeights } from '@/lib/score';
 import { eventProvider, formatDayKey } from './recoveryEvents';
 import { getActiveProtocol, parseWorkoutSchedule } from './protocol';
+import { startOfDayUtc } from './validation';
+import { DailyLog, WorkoutSession, Protocol } from '../generated/prisma';
 
 const dayKeyMap: Record<number, string> = {
   0: 'sun',
@@ -16,15 +17,15 @@ const dayKeyMap: Record<number, string> = {
 
 function countScheduledWorkouts(startDate: Date, endDate: Date, schedule: Record<string, string>): number {
   let count = 0;
-  const current = new Date(startDate);
+  const current = new Date(startDate.getTime());
   while (current <= endDate) {
-    const dayOfWeek = current.getDay();
+    const dayOfWeek = current.getUTCDay();
     const dayKey = dayKeyMap[dayOfWeek];
     const type = schedule[dayKey];
     if (type && type !== 'REST') {
       count++;
     }
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   return count;
 }
@@ -46,42 +47,26 @@ export async function computeStatsForPeriod(
   startDate: Date,
   endDate: Date,
   weights: ScoreWeights,
-  schedule: Record<string, string>
+  schedule: Record<string, string>,
+  logs: (DailyLog & { protocol: Protocol })[],
+  workouts: WorkoutSession[]
 ): Promise<ComputedStats> {
-  const logs = await prisma.dailyLog.findMany({
-    where: {
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    include: {
-      protocol: true,
-    },
-  });
+  const periodLogs = logs.filter(l => l.date >= startDate && l.date <= endDate);
+  const periodWorkouts = workouts.filter(w => w.date >= startDate && w.date <= endDate);
 
-  const workouts = await prisma.workoutSession.findMany({
-    where: {
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-  });
-
-  const totalWalks = logs.filter(l => l.walkedToday).length;
-  const totalWorkouts = workouts.length;
+  const totalWalks = periodLogs.filter(l => l.walkedToday).length;
+  const totalWorkouts = periodWorkouts.length;
   const expectedWorkouts = countScheduledWorkouts(startDate, endDate, schedule);
 
-  const avgSleep = logs.length > 0
-    ? logs.reduce((acc, l) => acc + l.sleepHours, 0) / logs.length
+  const avgSleep = periodLogs.length > 0
+    ? periodLogs.reduce((acc, l) => acc + l.sleepHours, 0) / periodLogs.length
     : 0;
 
-  const avgSittingBreaks = logs.length > 0
-    ? logs.reduce((acc, l) => acc + l.sittingBreaksActual, 0) / logs.length
+  const avgSittingBreaks = periodLogs.length > 0
+    ? periodLogs.reduce((acc, l) => acc + l.sittingBreaksActual, 0) / periodLogs.length
     : 0;
 
-  const dailySittingCompliances = logs.map(l => {
+  const dailySittingCompliances = periodLogs.map(l => {
     const target = l.protocol.sittingTarget > 0 ? l.protocol.sittingTarget : 10;
     return Math.min(1, l.sittingBreaksActual / target);
   });
@@ -92,29 +77,33 @@ export async function computeStatsForPeriod(
   let totalScore = 0;
   let daysWithScore = 0;
 
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dTime = startOfDay(d).getTime();
-    const log = logs.find(l => startOfDay(new Date(l.date)).getTime() === dTime) || null;
-    const dayKey = dayKeyMap[d.getDay()];
+  const current = new Date(startDate.getTime());
+  while (current <= endDate) {
+    const dTime = current.getTime();
+    const log = periodLogs.find(l => startOfDayUtc(l.date).getTime() === dTime) || null;
+    const dayOfWeek = current.getUTCDay();
+    const dayKey = dayKeyMap[dayOfWeek];
     const scheduledType = schedule[dayKey];
     const strengthScheduled = !!(scheduledType && scheduledType !== 'REST');
-    const strengthCompleted = workouts.some(w => startOfDay(new Date(w.date)).getTime() === dTime);
+    const strengthCompleted = periodWorkouts.some(w => startOfDayUtc(w.date).getTime() === dTime);
 
     const state = calculateDailyRecovery(log, strengthScheduled, strengthCompleted, weights);
     if (state.score !== null) {
       totalScore += state.score;
       daysWithScore++;
     }
+    
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   const recoveryScore = daysWithScore > 0 ? Math.round(totalScore / daysWithScore) : 0;
 
-  const avgPain = logs.length > 0
-    ? logs.reduce((acc, l) => acc + l.pain, 0) / logs.length
+  const avgPain = periodLogs.length > 0
+    ? periodLogs.reduce((acc, l) => acc + l.pain, 0) / periodLogs.length
     : 0;
 
-  const avgReflux = logs.length > 0
-    ? logs.reduce((acc, l) => acc + l.reflux, 0) / logs.length
+  const avgReflux = periodLogs.length > 0
+    ? periodLogs.reduce((acc, l) => acc + l.reflux, 0) / periodLogs.length
     : 0;
 
   return {
@@ -156,11 +145,11 @@ export interface WeeklyReviewResponse {
 
 export async function getWeeklyReviewData(weekStartingStr: string): Promise<WeeklyReviewResponse> {
   const [y, m, d] = weekStartingStr.split('T')[0].split('-').map(Number);
-  const weekStarting = new Date(y, m - 1, d);
-  const weekEnding = endOfDay(addDays(weekStarting, 6));
+  const weekStarting = new Date(Date.UTC(y, m - 1, d));
+  const weekEnding = new Date(Date.UTC(y, m - 1, d + 6, 23, 59, 59, 999));
 
-  const prevWeekStarting = subDays(weekStarting, 7);
-  const prevWeekEnding = endOfDay(subDays(weekStarting, 1));
+  const prevWeekStarting = new Date(Date.UTC(y, m - 1, d - 7));
+  const prevWeekEnding = new Date(Date.UTC(y, m - 1, d - 1, 23, 59, 59, 999));
 
   const protocol = await getActiveProtocol();
 
@@ -176,9 +165,41 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
 
   const schedule = parseWorkoutSchedule(protocol.workoutSchedule);
 
-  // Compute stats for current and previous week
-  const currentStats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule);
-  const prevStats = await computeStatsForPeriod(prevWeekStarting, prevWeekEnding, weights, schedule);
+  // Fetch all logs and workouts for the combined 14-day window ONCE
+  const priorLogs = await prisma.dailyLog.findMany({
+    where: {
+      date: {
+        gte: prevWeekStarting,
+        lte: weekEnding,
+      },
+    },
+    include: {
+      protocol: true,
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  const workouts = await prisma.workoutSession.findMany({
+    where: {
+      date: {
+        gte: prevWeekStarting,
+        lte: weekEnding,
+      },
+    },
+  });
+
+  const protocolChanges = await prisma.protocolChange.findMany({
+    where: {
+      changedAt: {
+        gte: prevWeekStarting,
+        lte: weekEnding,
+      },
+    },
+  });
+
+  // Compute stats for current and previous week by passing pre-fetched arrays
+  const currentStats = await computeStatsForPeriod(weekStarting, weekEnding, weights, schedule, priorLogs, workouts);
+  const prevStats = await computeStatsForPeriod(prevWeekStarting, prevWeekEnding, weights, schedule, priorLogs, workouts);
 
   // Get existing database entry if any
   const existingReview = await prisma.weeklyReview.findUnique({
@@ -202,51 +223,8 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
     }
   }
 
-  const dailyLogs = await prisma.dailyLog.findMany({
-    where: {
-      date: {
-        gte: weekStarting,
-        lte: weekEnding,
-      },
-    },
-    include: {
-      protocol: true,
-    },
-    orderBy: { date: 'asc' },
-  });
-  const workouts = await prisma.workoutSession.findMany({
-    where: {
-      date: {
-        gte: weekStarting,
-        lte: weekEnding,
-      },
-    },
-  });
-
-  // Calculate events for the week
-  // We actually need a bit of prev week data to calculate exact deltas on day 1, 
-  // but we can query 7 days prior just for the event generation
-  const priorLogs = await prisma.dailyLog.findMany({
-    where: {
-      date: {
-        gte: prevWeekStarting,
-        lte: weekEnding,
-      },
-    },
-    include: {
-      protocol: true,
-    },
-    orderBy: { date: 'asc' },
-  });
-  
-  const protocolChanges = await prisma.protocolChange.findMany({
-    where: {
-      changedAt: {
-        gte: prevWeekStarting,
-        lte: weekEnding,
-      },
-    },
-  });
+  // Use the pre-fetched priorLogs filtered for the current week instead of a duplicate query
+  const dailyLogs = priorLogs.filter(l => l.date >= weekStarting && l.date <= weekEnding);
 
   const allEvents = eventProvider.getEvents(priorLogs, workouts, protocolChanges);
   const timelineEvents = eventProvider.selectTimelineEvents(allEvents);

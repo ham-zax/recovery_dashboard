@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { differenceInDays } from 'date-fns';
+import { differenceInCalendarDays } from 'date-fns';
 import { Lock, Unlock, TrendingUp } from 'lucide-react';
 
 export async function ProtocolBanner() {
@@ -17,10 +17,13 @@ export async function ProtocolBanner() {
 
   const totalDays = durationSetting ? parseInt(durationSetting.value) : 84;
   const startDate = startDateSetting
-    ? new Date(startDateSetting.value)
+    ? (() => {
+        const [y, m, d] = startDateSetting.value.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      })()
     : new Date();
   const today = new Date();
-  const dayNumber = Math.max(1, differenceInDays(today, startDate) + 1);
+  const dayNumber = Math.max(1, differenceInCalendarDays(today, startDate) + 1);
   const weeksRemaining = Math.max(
     0,
     Math.ceil((totalDays - dayNumber) / 7)
@@ -28,10 +31,12 @@ export async function ProtocolBanner() {
 
   const isLocked = lock ? new Date(lock.lockedUntil) > today : false;
   const lockDateStr = lock
-    ? new Date(lock.lockedUntil).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
+    ? (() => {
+        const utcMonth = lock.lockedUntil.getUTCMonth();
+        const utcDay = lock.lockedUntil.getUTCDate();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[utcMonth]} ${utcDay}`;
+      })()
     : 'Not set';
 
   // Compute overall compliance
@@ -132,10 +137,13 @@ export async function ProtocolStrip() {
 
   const totalDays = durationSetting ? parseInt(durationSetting.value) : 84;
   const startDate = startDateSetting
-    ? new Date(startDateSetting.value)
+    ? (() => {
+        const [y, m, d] = startDateSetting.value.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      })()
     : new Date();
   const today = new Date();
-  const dayNumber = Math.max(1, differenceInDays(today, startDate) + 1);
+  const dayNumber = Math.max(1, differenceInCalendarDays(today, startDate) + 1);
 
   const isLocked = lock ? new Date(lock.lockedUntil) > today : false;
 

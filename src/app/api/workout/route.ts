@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
-import { startOfDay, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 import { getActiveProtocol } from '@/lib/protocol';
+import { startOfDayUtc } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
       const days = parseInt(daysStr, 10);
       if (!isNaN(days)) {
         whereClause = {
-          date: { gte: startOfDay(subDays(new Date(), days)) },
+          date: { gte: subDays(startOfDayUtc(new Date()), days) },
         };
       }
     }
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionDate = new Date(date);
+    const sessionDate = startOfDayUtc(date);
     if (isNaN(sessionDate.getTime())) {
       return Response.json({ error: 'Invalid date format' }, { status: 400 });
     }

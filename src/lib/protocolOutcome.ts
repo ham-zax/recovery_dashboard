@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { calculateDailyRecovery, DEFAULT_WEIGHTS, validateWeights, ScoreWeights } from './score';
-import { startOfDay } from 'date-fns';
+import { startOfDayUtc } from './validation';
 import { DailyLog, WorkoutSession, Protocol } from '../generated/prisma';
 import { parseWorkoutSchedule } from './protocol';
 
@@ -57,11 +57,11 @@ function computeMetrics(
   let scoredDays = 0;
 
   for (const log of logs) {
-    const d = startOfDay(new Date(log.date));
-    const dayKey = dayKeyMap[d.getDay()];
+    const d = startOfDayUtc(log.date);
+    const dayKey = dayKeyMap[d.getUTCDay()];
     const scheduledType = schedule[dayKey];
     const strengthScheduled = !!(scheduledType && scheduledType !== 'REST');
-    const strengthCompleted = workouts.some(w => startOfDay(new Date(w.date)).getTime() === d.getTime());
+    const strengthCompleted = workouts.some(w => startOfDayUtc(w.date).getTime() === d.getTime());
 
     const scoreLog = {
       pain: log.pain,

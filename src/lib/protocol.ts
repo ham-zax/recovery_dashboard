@@ -76,10 +76,14 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput, rea
     const logCount = await tx.dailyLog.count({ where: { protocolId: active.id } });
     
     if (logCount === 0) {
-      return tx.protocol.update({
-        where: { id: active.id },
-        data,
+      const updated = await tx.protocol.updateMany({
+        where: { id: active.id, active: true },
+        data: data as Prisma.ProtocolUpdateManyMutationInput,
       });
+      if (updated.count === 0) {
+        throw new Error('Protocol was modified concurrently. Please try again.');
+      }
+      return (await tx.protocol.findUnique({ where: { id: active.id } }))!;
     }
 
     const nextVersion = await getNextVersion(tx);
@@ -152,16 +156,27 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput, rea
  * Used when switching versions historically.
  */
 export async function activateProtocol(id: number) {
-  return prisma.$transaction([
-    prisma.protocol.updateMany({ 
-      where: { active: true },
-      data: { active: false, endedAt: new Date() } 
-    }),
-    prisma.protocol.update({ 
-      where: { id }, 
-      data: { active: true, startedAt: new Date(), endedAt: null } 
-    })
-  ]);
+  return prisma.$transaction(async (tx) => {
+    const active = await tx.protocol.findFirst({ where: { active: true } });
+    if (!active) throw new Error('No active protocol found');
+    
+    if (active.id === id) return active;
+
+    // Use Optimistic Concurrency Control: only deactivate if it's STILL the active one we found.
+    const updated = await tx.protocol.updateMany({
+      where: { id: active.id, active: true },
+      data: { active: false, endedAt: new Date() }
+    });
+
+    if (updated.count === 0) {
+      throw new Error('Protocol was modified concurrently. Please try again.');
+    }
+
+    return tx.protocol.update({
+      where: { id },
+      data: { active: true, startedAt: new Date(), endedAt: null }
+    });
+  });
 }
 
 export async function cloneProtocol(sourceId: number, reason?: string, notes?: string) {
