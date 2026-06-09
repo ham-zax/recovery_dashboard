@@ -17,11 +17,11 @@ Future path: `hamza.my.id/recovery` → expand to `/posture`, `/journal`, `/proj
 
 | Layer      | Technology          | Why                                      |
 |------------|---------------------|------------------------------------------|
-| Framework  | Next.js 15 (App Router) | Full-stack, API routes, SSR              |
+| Framework  | Next.js 16 (App Router) | Full-stack, API routes, SSR              |
 | ORM        | Prisma              | Type-safe, migration-friendly            |
 | Database   | SQLite (local)      | Zero infra, single user, AI-friendly     |
 | Charts     | Chart.js + react-chartjs-2 | Lightweight, flexible, well-documented |
-| Styling    | Vanilla CSS         | Full control, Notion/Linear/Obsidian vibe |
+| Styling    | Tailwind CSS v4     | Already bundled, utility-first, dark mode built-in |
 | Auth       | Env-var password gate | Simple middleware check, no auth service |
 | Hosting    | Local dev → Cloudflare Pages + D1 (later) | Already have Cloudflare |
 
@@ -85,6 +85,8 @@ erDiagram
         Boolean walkedToday
         Boolean strengthToday
         Float sleepHours
+        Int sittingBreaksTarget "default 10"
+        Int sittingBreaksActual "0-N"
         String notes "nullable"
         DateTime createdAt
         DateTime updatedAt
@@ -173,7 +175,10 @@ erDiagram
 |---------------------------|--------------------------------------------------------|
 | `recovery_score_weights`  | `{"walking":30,"strength":25,"sleep":20,"sitting":15,"checkins":10}` |
 | `protocol_version`        | `v1.0`                                                 |
+| `protocol_start_date`     | `2026-06-09` (today — Day 1)                           |
+| `protocol_duration_days`  | `84` (12 weeks)                                        |
 | `protocol_locked_until`   | `2026-07-21` (6 weeks from now)                        |
+| `sitting_breaks_target`   | `10`                                                   |
 | `weekly_review_day`       | `sunday`                                               |
 | `workout_schedule`        | `{"mon":"LOWER","tue":"UPPER","wed":"REST","thu":"LOWER","fri":"UPPER","sat":"REST","sun":"REST"}` |
 
@@ -202,8 +207,12 @@ The command center. Glanceable. No scrolling needed for key metrics.
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│  🚫 Protocol v1.0 — Locked until July 15               │
-│  "Execution > Explanation"                              │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ 🚫  Protocol v1.0          Day 18 / 84          │    │
+│  │     Locked until July 15   Weeks Remaining: 9   │    │
+│  │                                                  │    │
+│  │     Compliance: 83%        Execution > Explanation│   │
+│  └─────────────────────────────────────────────────┘    │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌──────────────────────┐                               │
@@ -218,11 +227,11 @@ The command center. Glanceable. No scrolling needed for key metrics.
 │  │ ▼ -12%  │ │ ▲ +1    │ │ ● same  │ │ ▲ +0.5  │      │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘      │
 │                                                         │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐                   │
-│  │Compliance│ │ Reflux │ │Sit Tol. │                   │
-│  │  82%    │ │  4/10   │ │  3 hrs  │                   │
-│  │ ▲ +5%   │ │ ▼ -2    │ │ ● same  │                   │
-│  └─────────┘ └─────────┘ └─────────┘                   │
+│  ┌──────────┐ ┌──────────┐ ┌───────────────────┐       │
+│  │Compliance│ │ Reflux   │ │ Sitting Breaks    │       │
+│  │  82%     │ │  4/10    │ │ 7 / 10  (70%)     │       │
+│  │ ▲ +5%    │ │ ▼ -2     │ │ ▼ -1 from avg     │       │
+│  └──────────┘ └──────────┘ └───────────────────┘       │
 │                                                         │
 │  ┌──────────────────────────────────────────────┐       │
 │  │  7d / 30d / 90d   Pain & Walking Trend       │       │
@@ -238,8 +247,15 @@ The command center. Glanceable. No scrolling needed for key metrics.
 └─────────────────────────────────────────────────────────┘
 ```
 
+**Execution Banner data:**
+- Protocol version + lock date from `ProtocolLock` table
+- Day count: days since `protocol_start_date` setting / 84 (12 weeks)
+- Weeks remaining: computed from day count
+- Compliance %: (days with check-in / total days elapsed) × 100
+
 **Data sources:**
 - Metric cards: Latest DailyLog + computed aggregates
+- Sitting Breaks: `sittingBreaksActual / sittingBreaksTarget` from DailyLog
 - Trends: DailyLog grouped by period
 - Recovery Score: Computed from weighted formula in Settings
 
@@ -264,6 +280,9 @@ The command center. Glanceable. No scrolling needed for key metrics.
 │                                         │
 │  Sleep (hours)        [  7.5  ]         │  ← Number input
 │                                         │
+│  Sitting Breaks       [  7  ] / 10      │  ← Number input
+│  (how many did you take today?)         │     (target shown)
+│                                         │
 │  Notes (optional)                       │
 │  ┌─────────────────────────────────┐    │
 │  │ Neck felt better today.         │    │
@@ -272,9 +291,9 @@ The command center. Glanceable. No scrolling needed for key metrics.
 │  [Save Check-In]                        │
 │                                         │
 │  ── Previous 3 Days ──                  │
-│  Jun 8: Pain 6 · Sleep 7h · ✓ Walk     │
-│  Jun 7: Pain 5 · Sleep 8h · ✓ Walk     │
-│  Jun 6: Pain 7 · Sleep 6h · ✗ Walk     │
+│  Jun 8: Pain 6 · Sleep 7h · Breaks 8/10│
+│  Jun 7: Pain 5 · Sleep 8h · Breaks 7/10│
+│  Jun 6: Pain 7 · Sleep 6h · Breaks 5/10│
 └─────────────────────────────────────────┘
 ```
 
