@@ -14,8 +14,8 @@ interface DailyLog {
   walkedToday: boolean;
   strengthToday: boolean;
   sleepHours: number;
-  sittingBreaksTarget: number;
   sittingBreaksActual: number;
+  protocol: { sittingTarget: number };
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +80,7 @@ export async function getDashboardData(days: number) {
         gte: limitDate,
       },
     },
+    include: { protocol: true },
     orderBy: { date: 'asc' },
   });
 
@@ -91,6 +92,7 @@ export async function getDashboardData(days: number) {
         lt: limitDate,
       },
     },
+    include: { protocol: true },
     orderBy: { date: 'asc' },
   });
 
@@ -136,15 +138,20 @@ export async function getDashboardData(days: number) {
     return logs.reduce((acc, l) => acc + l[key], 0) / logs.length;
   };
 
-  const getSittingBreaksAverage = (logs: DailyLog[], key: 'sittingBreaksActual' | 'sittingBreaksTarget') => {
+  const getSittingBreaksAverage = (logs: DailyLog[], key: 'sittingBreaksActual') => {
     if (logs.length === 0) return 0;
     return logs.reduce((acc, l) => acc + l[key], 0) / logs.length;
+  };
+
+  const getSittingTargetAverage = (logs: DailyLog[]) => {
+    if (logs.length === 0) return 0;
+    return logs.reduce((acc, l) => acc + l.protocol.sittingTarget, 0) / logs.length;
   };
 
   const getSittingComplianceAverage = (logs: DailyLog[]) => {
     if (logs.length === 0) return 0;
     const compliances = logs.map(l => {
-      const target = l.sittingBreaksTarget > 0 ? l.sittingBreaksTarget : 10;
+      const target = l.protocol.sittingTarget > 0 ? l.protocol.sittingTarget : 10;
       return Math.min(1, l.sittingBreaksActual / target);
     });
     return compliances.reduce((acc, c) => acc + c, 0) / compliances.length;
@@ -154,7 +161,7 @@ export async function getDashboardData(days: number) {
   const currentAvgPain = getAverage(currentLogs, 'pain');
   const currentAvgReflux = getAverage(currentLogs, 'reflux');
   const currentAvgSittingActual = getSittingBreaksAverage(currentLogs, 'sittingBreaksActual');
-  const currentAvgSittingTarget = getSittingBreaksAverage(currentLogs, 'sittingBreaksTarget');
+  const currentAvgSittingTarget = getSittingTargetAverage(currentLogs);
   const currentAvgSittingCompliance = getSittingComplianceAverage(currentLogs);
 
   // Previous averages / counts

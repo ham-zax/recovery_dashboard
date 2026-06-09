@@ -15,22 +15,24 @@ model DailyLog {
   walkedToday         Boolean
   strengthToday       Boolean
   sleepHours          Float
-  sittingBreaksTarget Int      @default(10)
-  sittingBreaksActual Int      @default(0)
+  sittingBreaksActual Int       @default(0)
   notes               String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
-  protocolId          Int?
-  protocol            Protocol? @relation(fields: [protocolId], references: [id])
+  protocolId          Int
+  protocol            Protocol  @relation(fields: [protocolId], references: [id])
 }
 
 model WorkoutSession {
-  id        Int             @id @default(autoincrement())
-  date      DateTime
-  type      String // LOWER | UPPER
-  notes     String?
-  entries   ExerciseEntry[]
-  createdAt DateTime        @default(now())
+  id         Int             @id @default(autoincrement())
+  date       DateTime
+  type       String // LOWER | UPPER
+  notes      String?
+  entries    ExerciseEntry[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  protocolId Int
+  protocol   Protocol        @relation(fields: [protocolId], references: [id])
 }
 
 model ExerciseEntry {
@@ -82,14 +84,18 @@ model ProtocolLock {
 }
 
 model Protocol {
-  id              Int      @id @default(autoincrement())
-  version         String   @unique
-  walkingTarget   Int      @default(1)
-  sittingTarget   Int      @default(10)
-  recoveryWeights String?  // Stored as JSON string
-  active          Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id              Int              @id @default(autoincrement())
+  version         String           @unique
+  walkingTarget   Int              @default(1)
+  sittingTarget   Int              @default(10)
+  recoveryWeights String? // Stored as JSON string
+  active          Boolean          @default(false)
+  startedAt       DateTime         @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   logs            DailyLog[]
+  workouts        WorkoutSession[]
 }
 
 model Setting {

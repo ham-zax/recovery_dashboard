@@ -30,10 +30,20 @@ interface WorkoutSchedule {
   sun: string;
 }
 
+interface ProtocolState {
+  id: number;
+  version: string;
+  walkingTarget: number;
+  sittingTarget: number;
+  recoveryWeights?: ScoreWeights;
+  active: boolean;
+}
+
 export function SettingsContent() {
   const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [protocol, setProtocol] = useState<ProtocolState | null>(null);
   const [lock, setLock] = useState<{ version: string; lockedUntil: string; description: string } | null>(null);
   
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,12 +65,8 @@ export function SettingsContent() {
 
   // Parse state helper
   const getWeights = (): ScoreWeights => {
-    try {
-      if (settings.recovery_score_weights) {
-        return JSON.parse(settings.recovery_score_weights);
-      }
-    } catch {
-      // fallback
+    if (protocol && protocol.recoveryWeights) {
+      return protocol.recoveryWeights;
     }
     return { walking: 30, strength: 25, sleep: 20, sitting: 15, checkins: 10 };
   };
@@ -99,6 +105,7 @@ export function SettingsContent() {
       const exercisesData = await exercisesRes.json();
 
       setSettings(settingsData.settings);
+      setProtocol(settingsData.protocol);
       setLock(settingsData.protocolLock);
       setExercises(exercisesData);
 
@@ -142,7 +149,10 @@ export function SettingsContent() {
   const handleUpdateWeight = (key: keyof ScoreWeights, value: number) => {
     const currentWeights = getWeights();
     currentWeights[key] = value;
-    handleUpdateSetting('recovery_score_weights', JSON.stringify(currentWeights));
+    setProtocol((prev: ProtocolState | null) => prev ? ({
+      ...prev,
+      recoveryWeights: currentWeights
+    }) : prev);
   };
 
   const handleUpdateSchedule = (day: keyof WorkoutSchedule, value: string) => {
@@ -167,7 +177,7 @@ export function SettingsContent() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings, protocol }),
       });
 
       if (!res.ok) {
@@ -458,8 +468,8 @@ export function SettingsContent() {
                 <label className="text-sm text-text-primary font-medium">Sitting Breaks Target</label>
                 <input
                   type="number"
-                  value={settings.sitting_breaks_target ?? '10'}
-                  onChange={(e) => handleUpdateSetting('sitting_breaks_target', e.target.value)}
+                  value={protocol?.sittingTarget ?? '10'}
+                  onChange={(e) => setProtocol((prev: ProtocolState | null) => prev ? ({...prev, sittingTarget: e.target.value === '' ? 0 : Number(e.target.value)}) : prev)}
                   className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none w-full sm:w-32 transition-colors"
                 />
               </div>
@@ -529,7 +539,7 @@ export function SettingsContent() {
                         max="100"
                         value={w[k]}
                         disabled={locked}
-                        onChange={(e) => handleUpdateWeight(k, parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleUpdateWeight(k, e.target.value === '' ? 0 : Number(e.target.value))}
                         className="bg-bg-input border border-border rounded-xl px-3 min-h-[44px] w-20 text-center text-sm font-mono text-text-primary focus:border-border-focus outline-none disabled:opacity-50 transition-colors"
                       />
                       <span className="text-sm text-text-tertiary font-mono">%</span>

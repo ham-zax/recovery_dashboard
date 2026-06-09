@@ -12,18 +12,6 @@ export async function GET() {
     }
 
     const protocol = await getActiveProtocol();
-    
-    // LEGACY API COMPATIBILITY SHIM
-    // The UI still expects these protocol fields to be present in the general
-    // 'settings' dictionary. We synthesize them here to maintain backwards 
-    // compatibility with the SettingsContent component without needing UI rewrites yet.
-    // TODO: Remove this once SettingsContent UI is updated to fetch Protocol fields directly.
-    settingsMap['sitting_breaks_target'] = protocol.sittingTarget.toString();
-    settingsMap['walking_target'] = protocol.walkingTarget.toString();
-    if (protocol.recoveryWeights) {
-      settingsMap['recovery_score_weights'] = protocol.recoveryWeights;
-    }
-    settingsMap['protocol_version'] = protocol.version;
 
     const latestLock = await prisma.protocolLock.findFirst({
       orderBy: { createdAt: 'desc' },
@@ -31,6 +19,14 @@ export async function GET() {
 
     return NextResponse.json({
       settings: settingsMap,
+      protocol: {
+        id: protocol.id,
+        version: protocol.version,
+        walkingTarget: protocol.walkingTarget,
+        sittingTarget: protocol.sittingTarget,
+        recoveryWeights: protocol.recoveryWeights ? JSON.parse(protocol.recoveryWeights) : undefined,
+        active: protocol.active,
+      },
       protocolLock: latestLock ? {
         version: latestLock.version,
         lockedUntil: latestLock.lockedUntil.toISOString(),
@@ -47,34 +43,31 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { settings, protocolLock } = body;
+    const { settings, protocol, protocolLock } = body;
 
     const isLocked = await isProtocolLocked();
 
+    if (protocol) {
+      try {
+        await updateActiveProtocol({
+          sittingTarget: protocol.sittingTarget,
+          walkingTarget: protocol.walkingTarget,
+          recoveryWeights: protocol.recoveryWeights ? JSON.stringify(protocol.recoveryWeights) : undefined,
+        });
+      } catch (e) {
+        return NextResponse.json({ error: (e as Error).message }, { status: 403 });
+      }
+    }
+
     if (settings) {
-      const protocolUpdate: { sittingTarget?: number; walkingTarget?: number; recoveryWeights?: string } = {};
       const genericSettings: Record<string, string> = {};
 
       for (const [key, value] of Object.entries(settings)) {
-        if (key === 'sitting_breaks_target') {
-          protocolUpdate.sittingTarget = parseInt(String(value), 10);
-        } else if (key === 'walking_target') {
-          protocolUpdate.walkingTarget = parseInt(String(value), 10);
-        } else if (key === 'recovery_score_weights') {
-          protocolUpdate.recoveryWeights = String(value);
-        } else {
-          genericSettings[key] = String(value);
-        }
+        genericSettings[key] = String(value);
       }
 
-      const activeProtocol = await getActiveProtocol();
-      let protocolChanged = false;
-      if (protocolUpdate.sittingTarget !== undefined && protocolUpdate.sittingTarget !== activeProtocol.sittingTarget) protocolChanged = true;
-      if (protocolUpdate.walkingTarget !== undefined && protocolUpdate.walkingTarget !== activeProtocol.walkingTarget) protocolChanged = true;
-      if (protocolUpdate.recoveryWeights !== undefined && protocolUpdate.recoveryWeights !== activeProtocol.recoveryWeights) protocolChanged = true;
-
       // If locked, prevent changes to legacy generic settings
-      // Note: Protocol field mutations are now strictly enforced by updateActiveProtocol() below.
+      // Note: Protocol field mutations are now strictly enforced by updateActiveProtocol() above.
       if (isLocked) {
         const lockedKeys = [
           'workout_schedule',
@@ -115,16 +108,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             error: `Protocol is locked until ${formattedDate}. Cannot modify settings: ${attemptedChanges.join(', ')}.`,
           }, { status: 403 });
-        }
-      }
-
-      // Update settings
-      // Ownership boundaries: updateActiveProtocol() will reject internally if locked
-      if (protocolChanged) {
-        try {
-          await updateActiveProtocol(protocolUpdate);
-        } catch (e) {
-          return NextResponse.json({ error: (e as Error).message }, { status: 403 });
         }
       }
 

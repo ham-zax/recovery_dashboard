@@ -56,8 +56,10 @@ export interface DailyMetrics {
   pain: number;
   reflux: number;
   walkedToday: boolean;
-  sittingBreaksTarget: number;
   sittingBreaksActual: number;
+  protocol: {
+    sittingTarget: number;
+  };
 }
 
 export function getRecoveryStatus(score: number): RecoveryStatus {
@@ -98,7 +100,7 @@ export function calculateDailyRecovery(
   const refluxScore = Math.max(0, 100 - (log.reflux * 10));
   const walkScore = log.walkedToday ? 100 : 0;
   
-  const target = log.sittingBreaksTarget > 0 ? log.sittingBreaksTarget : 10;
+  const target = log.protocol.sittingTarget > 0 ? log.protocol.sittingTarget : 10;
   const complianceScore = Math.min(100, (log.sittingBreaksActual / target) * 100);
 
   const activeWeights = { ...weights };

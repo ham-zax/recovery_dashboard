@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
       // Export Daily Logs as CSV
       const logs = await prisma.dailyLog.findMany({
         orderBy: { date: 'asc' },
+        include: { protocol: true },
       });
 
       const csvHeaders = [
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
           l.strengthToday ? 'Yes' : 'No',
           l.sleepHours,
           l.sittingBreaksActual,
-          l.sittingBreaksTarget,
+          l.protocol.sittingTarget,
           l.notes ? `"${l.notes.replace(/"/g, '""')}"` : '',
         ];
         return row.join(',');

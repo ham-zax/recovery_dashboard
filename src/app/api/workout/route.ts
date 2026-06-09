@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 import { startOfDay, subDays } from 'date-fns';
+import { getActiveProtocol } from '@/lib/protocol';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, type, notes, exercises } = body;
+    const { date, type, notes, exercises, protocolId } = body;
 
     if (!date || !type || !exercises || !Array.isArray(exercises)) {
       return Response.json(
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid date format' }, { status: 400 });
     }
 
+    const protocol = await getActiveProtocol();
+
     // Execute session and entries creation within a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create session
@@ -73,6 +76,7 @@ export async function POST(request: NextRequest) {
           date: sessionDate,
           type,
           notes: notes || null,
+          protocolId: protocolId || protocol.id,
         },
       });
 

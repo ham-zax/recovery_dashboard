@@ -36,10 +36,48 @@ export async function updateActiveProtocol(data: Prisma.ProtocolUpdateInput) {
 
   const active = await getActiveProtocol();
 
-  return prisma.protocol.update({
-    where: { id: active.id },
-    data,
+  // If the active protocol has no logs yet, we can safely mutate it
+  const logCount = await prisma.dailyLog.count({ where: { protocolId: active.id } });
+  
+  if (logCount === 0) {
+    return prisma.protocol.update({
+      where: { id: active.id },
+      data,
+    });
+  }
+
+  // Otherwise, create a new version
+  // v1.0 -> v1.1
+  const match = active.version.match(/v(\d+)\.(\d+)/);
+  const nextVersion = match 
+    ? `v${match[1]}.${parseInt(match[2], 10) + 1}` 
+    : `${active.version}.1`;
+
+  // Run in transaction to ensure atomic switch
+  const result = await prisma.$transaction(async (tx) => {
+    // Close current
+    await tx.protocol.update({
+      where: { id: active.id },
+      data: {
+        active: false,
+        endedAt: new Date(),
+      }
+    });
+
+    // Create new
+    return tx.protocol.create({
+      data: {
+        version: nextVersion,
+        active: true,
+        startedAt: new Date(),
+        walkingTarget: data.walkingTarget !== undefined ? (data.walkingTarget as number) : active.walkingTarget,
+        sittingTarget: data.sittingTarget !== undefined ? (data.sittingTarget as number) : active.sittingTarget,
+        recoveryWeights: data.recoveryWeights !== undefined ? (data.recoveryWeights as string) : active.recoveryWeights,
+      }
+    });
   });
+
+  return result;
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   Dumbbell,
   BarChart3,
   Settings,
+  Target,
 } from 'lucide-react';
 import './globals.css';
 
@@ -32,6 +33,7 @@ const navItems = [
   { href: '/checkin', label: 'Check-In', icon: ClipboardCheck },
   { href: '/workout', label: 'Workout', icon: Dumbbell },
   { href: '/review', label: 'Review', icon: BarChart3 },
+  { href: '/protocols', label: 'Protocols', icon: Target },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

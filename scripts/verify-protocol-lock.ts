@@ -38,7 +38,7 @@ async function runTests() {
     if (isLockedFirst) throw new Error('Protocol should not be locked initially.');
     
     await updateActiveProtocol({ sittingTarget: 15 });
-    let updated = await getActiveProtocol();
+    const updated = await getActiveProtocol();
     if (updated.sittingTarget !== 15) throw new Error('Sitting target did not update.');
     console.log('✅ Unlocked protocol mutation succeeded.');
 
@@ -60,8 +60,8 @@ async function runTests() {
     let mutationRejected = false;
     try {
       await updateActiveProtocol({ sittingTarget: 20 });
-    } catch (err: any) {
-      if (err.message.includes('Protocol is currently locked')) {
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Protocol is currently locked')) {
         mutationRejected = true;
       }
     }

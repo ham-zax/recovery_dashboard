@@ -55,6 +55,9 @@ export async function computeStatsForPeriod(
         lte: endDate,
       },
     },
+    include: {
+      protocol: true,
+    },
   });
 
   const workouts = await prisma.workoutSession.findMany({
@@ -79,7 +82,7 @@ export async function computeStatsForPeriod(
     : 0;
 
   const dailySittingCompliances = logs.map(l => {
-    const target = l.sittingBreaksTarget > 0 ? l.sittingBreaksTarget : 10;
+    const target = l.protocol.sittingTarget > 0 ? l.protocol.sittingTarget : 10;
     return Math.min(1, l.sittingBreaksActual / target);
   });
   const avgSittingCompliance = dailySittingCompliances.length > 0
@@ -212,6 +215,9 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
         lte: weekEnding,
       },
     },
+    include: {
+      protocol: true,
+    },
     orderBy: { date: 'asc' },
   });
   const workouts = await prisma.workoutSession.findMany({
@@ -263,7 +269,7 @@ export async function getWeeklyReviewData(weekStartingStr: string): Promise<Week
       hasWorkout: dayWorkouts,
       sleepHours: l.sleepHours,
       sittingBreaksActual: l.sittingBreaksActual,
-      sittingBreaksTarget: l.sittingBreaksTarget,
+      sittingBreaksTarget: l.protocol.sittingTarget,
       notes: l.notes,
       events: dayEvents,
     };
