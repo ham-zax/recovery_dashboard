@@ -34,7 +34,7 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handleMinus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all"
+        className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Minus size={20} />
       </button>
@@ -60,13 +60,13 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
             }
           }
         }}
-        className="flex-1 min-w-[40px] w-full text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none placeholder:text-text-tertiary"
+        className="flex-1 w-0 min-w-0 text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none placeholder:text-text-tertiary"
         placeholder="0"
       />
       <button 
         type="button" 
         onClick={handlePlus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all"
+        className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Plus size={20} />
       </button>

@@ -47,7 +47,7 @@ export function BottomNav() {
                 href={item.href}
                 prefetch={true}
                 id={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-xl transition-colors ${
+                className={`flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[44px] rounded-xl transition-colors ${
                   active
                     ? 'text-accent-purple'
                     : 'text-text-tertiary active:text-text-secondary'
