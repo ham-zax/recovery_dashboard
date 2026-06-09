@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Target, Activity, CheckCircle2, History, Info, GitMerge } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { formatUtc } from '@/lib/validation';
 
 export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
   const router = useRouter();
@@ -87,7 +87,7 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
             )}
           </h1>
           <p className="text-text-secondary mt-2 font-mono text-sm">
-            {format(new Date(p.startedAt), 'MMM d, yyyy')} - {p.endedAt ? format(new Date(p.endedAt), 'MMM d, yyyy') : 'Present'}
+            {formatUtc(p.startedAt, 'MMM d, yyyy')} - {p.endedAt ? formatUtc(p.endedAt, 'MMM d, yyyy') : 'Present'}
           </p>
         </div>
         <div className="flex gap-2">

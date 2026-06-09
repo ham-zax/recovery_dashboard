@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { isProtocolLocked } from '@/lib/lock';
 import { getActiveProtocol, updateActiveProtocol } from '@/lib/protocol';
-import { format } from 'date-fns';
+import { formatUtc } from '@/lib/validation';
 
 export async function GET() {
   try {
@@ -102,11 +102,7 @@ export async function POST(request: NextRequest) {
             orderBy: { lockedUntil: 'desc' },
           });
           const formattedDate = activeLock
-            ? new Date(activeLock.lockedUntil).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
+            ? formatUtc(activeLock.lockedUntil, 'MMM d, yyyy')
             : 'set date';
           return NextResponse.json({
             error: `Protocol is locked until ${formattedDate}. Cannot modify settings: ${attemptedChanges.join(', ')}.`,
@@ -154,8 +150,8 @@ export async function POST(request: NextRequest) {
       // Also upsert settings value
       await prisma.setting.upsert({
         where: { key: 'protocol_locked_until' },
-        update: { value: format(newLockDate, 'yyyy-MM-dd') },
-        create: { key: 'protocol_locked_until', value: format(newLockDate, 'yyyy-MM-dd') },
+        update: { value: protocolLock.lockedUntil },
+        create: { key: 'protocol_locked_until', value: protocolLock.lockedUntil },
       });
       if (protocolLock.version) {
         await prisma.setting.upsert({

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Target, Activity, CheckCircle2, ChevronRight, History, GitMerge } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatUtc } from '@/lib/validation';
 import Link from 'next/link';
 
 interface ProtocolOutcome {
@@ -58,8 +58,8 @@ const ProtocolCard = ({ p, isBest = false }: { p: ProtocolStats, isBest?: boolea
       <span className="text-xs font-mono text-text-tertiary">
         {p.days > 0 && p.startDate ? (
           <>
-            {format(new Date(p.startDate), 'MMM d, yyyy')}
-            {p.endDate && p.startDate !== p.endDate && ` - ${format(new Date(p.endDate), 'MMM d, yyyy')}`}
+            {formatUtc(p.startDate, 'MMM d, yyyy')}
+            {p.endDate && p.startDate !== p.endDate && ` - ${formatUtc(p.endDate, 'MMM d, yyyy')}`}
           </>
         ) : (
           'No Logs Yet'
@@ -245,7 +245,7 @@ export function ProtocolsContent({
                         <div className="space-y-3">
                           <div className="flex items-baseline gap-3">
                             <span className="text-lg font-bold text-text-primary">v{event.toVersion.replace('v', '')}</span>
-                            <span className="text-sm font-mono text-text-tertiary">{format(new Date(event.date), 'MMM d, yyyy')}</span>
+                            <span className="text-sm font-mono text-text-tertiary">{formatUtc(event.date, 'MMM d, yyyy')}</span>
                           </div>
                           <div className="bg-bg-card border border-border rounded-xl p-5 space-y-4 shadow-sm">
                             <div className="flex gap-3">

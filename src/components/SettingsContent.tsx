@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatUtc } from '@/lib/validation';
 import { parseBoundedInt } from '@/lib/validation';
 
 export interface Exercise {
@@ -75,7 +75,7 @@ export function SettingsContent({
   const [lockVersion, setLockVersion] = useState<string>(initialLock?.version || 'v1.0');
   const [lockDate, setLockDate] = useState<string>(
     initialLock 
-      ? format(new Date(initialLock.lockedUntil), 'yyyy-MM-dd') 
+      ? formatUtc(initialLock.lockedUntil, 'yyyy-MM-dd') 
       : (initialSettings['protocol_locked_until'] || defaultLockDate)
   );
   const [lockDescription, setLockDescription] = useState<string>(initialLock?.description || 'Execute one protocol consistently.');
@@ -331,7 +331,7 @@ export function SettingsContent({
                       type="date"
                       value={lockDate}
                       onChange={(e) => setLockDate(e.target.value)}
-                      min={lock ? format(new Date(lock.lockedUntil), 'yyyy-MM-dd') : undefined}
+                      min={lock ? formatUtc(lock.lockedUntil, 'yyyy-MM-dd') : undefined}
                       className="w-full bg-bg-input border border-border rounded-xl px-4 h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
                     />
                   </div>
