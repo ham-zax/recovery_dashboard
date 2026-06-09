@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { isProtocolLocked } from '@/lib/lock';
 
 export async function GET() {
   try {
@@ -19,6 +20,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (await isProtocolLocked()) {
+      return Response.json({ error: 'Protocol is locked. Cannot modify exercises.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, category, active } = body;
 

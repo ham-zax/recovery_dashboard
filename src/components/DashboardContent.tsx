@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { RecoveryScore } from './RecoveryScore';
 import { MetricCard } from './MetricCard';
 import { TrendChart } from './charts/TrendChart';
+import { ComplianceChart } from './charts/ComplianceChart';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { ClipboardCheck, Dumbbell } from 'lucide-react';
 
@@ -33,6 +34,7 @@ interface DashboardResponse {
     pain: number | null;
     walked: number | null;
     reflux: number | null;
+    compliance: number;
   }[];
 }
 
@@ -210,6 +212,11 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
           {/* Trend Chart */}
           <div className="w-full">
             <TrendChart data={data.chartData} />
+          </div>
+
+          {/* Compliance Trend Bar Chart */}
+          <div className="w-full">
+            <ComplianceChart data={data.chartData} />
           </div>
 
           {/* Action Buttons (bottom on mobile, desktop can be wherever) */}

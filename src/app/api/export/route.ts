@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
     const reviews = await prisma.weeklyReview.findMany({ orderBy: { weekStarting: 'asc' } });
     const locks = await prisma.protocolLock.findMany({ orderBy: { createdAt: 'asc' } });
     const settings = await prisma.setting.findMany();
+    const exercises = await prisma.exercise.findMany({ orderBy: { sortOrder: 'asc' } });
 
     const exportData = {
       exportedAt: new Date().toISOString(),
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
       weeklyReviews: reviews,
       protocolLocks: locks,
       settings,
+      exercises,
     };
 
     const jsonContent = JSON.stringify(exportData, null, 2);

@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "verify": "tsx scripts/verify-dashboard.ts",
+    "test": "npm run lint && npm run build && npm run verify",
     "postinstall": "prisma generate"
   },
   "dependencies": {

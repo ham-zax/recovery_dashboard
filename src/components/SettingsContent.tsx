@@ -688,14 +688,16 @@ export function SettingsContent() {
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => handleStartEditExercise(ex)}
-                                  className="text-text-secondary hover:text-text-primary w-11 h-11 flex items-center justify-center rounded-lg hover:bg-bg-card cursor-pointer transition-colors"
+                                  disabled={locked}
+                                  className="text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:hover:bg-transparent w-11 h-11 flex items-center justify-center rounded-lg hover:bg-bg-card cursor-pointer transition-colors"
                                   title="Edit exercise"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDeactivateExercise(ex.id)}
-                                  className="text-text-secondary hover:text-accent-red w-11 h-11 flex items-center justify-center rounded-lg hover:bg-bg-card cursor-pointer transition-colors"
+                                  disabled={locked}
+                                  className="text-text-secondary hover:text-accent-red disabled:opacity-30 disabled:hover:bg-transparent w-11 h-11 flex items-center justify-center rounded-lg hover:bg-bg-card cursor-pointer transition-colors"
                                   title="Delete exercise"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -714,27 +716,30 @@ export function SettingsContent() {
             {/* Add Exercise Form */}
             <div className="p-5 bg-bg-card-hover/20 border-t border-border space-y-3">
               <span className="text-xs text-text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5" /> Add New Exercise
+                <Plus className="w-3.5 h-3.5" /> Add New Exercise {locked && "(Locked)"}
               </span>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={newExerciseName}
                   onChange={(e) => setNewExerciseName(e.target.value)}
-                  placeholder="e.g. Face Pulls..."
-                  className="flex-1 bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors"
+                  disabled={locked}
+                  placeholder={locked ? "Protocol is locked" : "e.g. Face Pulls..."}
+                  className="flex-1 bg-bg-input border border-border disabled:opacity-50 rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors"
                 />
                 <select
                   value={newExerciseCategory}
                   onChange={(e) => setNewExerciseCategory(e.target.value as 'LOWER' | 'UPPER')}
-                  className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors w-full sm:w-32"
+                  disabled={locked}
+                  className="bg-bg-input border border-border disabled:opacity-50 rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors w-full sm:w-32"
                 >
                   <option value="LOWER">LOWER</option>
                   <option value="UPPER">UPPER</option>
                 </select>
                 <button
                   onClick={handleAddExercise}
-                  className="px-5 min-h-[44px] bg-accent-purple hover:bg-opacity-90 text-bg-primary font-bold rounded-xl text-sm transition-colors cursor-pointer"
+                  disabled={locked}
+                  className="px-5 min-h-[44px] bg-accent-purple disabled:opacity-40 disabled:hover:bg-accent-purple hover:bg-opacity-90 text-bg-primary font-bold rounded-xl text-sm transition-colors cursor-pointer"
                 >
                   Add
                 </button>

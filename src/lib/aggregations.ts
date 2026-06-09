@@ -215,6 +215,7 @@ export async function getDashboardData(days: number) {
       pain: log ? log.pain : null,
       walked: log ? (log.walkedToday ? 1 : 0) : null,
       reflux: log ? log.reflux : null,
+      compliance: log ? 100 : 0,
     });
   }
 

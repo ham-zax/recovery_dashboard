@@ -1,11 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { isProtocolLocked } from '@/lib/lock';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (await isProtocolLocked()) {
+      return NextResponse.json({ error: 'Protocol is locked. Cannot modify exercises.' }, { status: 403 });
+    }
+
     const { id } = await params;
     const exerciseId = parseInt(id, 10);
     if (isNaN(exerciseId)) {
@@ -50,6 +55,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (await isProtocolLocked()) {
+      return NextResponse.json({ error: 'Protocol is locked. Cannot modify exercises.' }, { status: 403 });
+    }
+
     const { id } = await params;
     const exerciseId = parseInt(id, 10);
     if (isNaN(exerciseId)) {
