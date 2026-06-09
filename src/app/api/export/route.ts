@@ -68,6 +68,8 @@ export async function GET(request: NextRequest) {
     const locks = await prisma.protocolLock.findMany({ orderBy: { createdAt: 'asc' } });
     const settings = await prisma.setting.findMany();
     const exercises = await prisma.exercise.findMany({ orderBy: { sortOrder: 'asc' } });
+    const protocols = await prisma.protocol.findMany({ orderBy: { createdAt: 'asc' } });
+    const protocolChanges = await prisma.protocolChange.findMany({ orderBy: { changedAt: 'asc' } });
 
     const exportData = {
       exportedAt: new Date().toISOString(),
@@ -77,6 +79,8 @@ export async function GET(request: NextRequest) {
       protocolLocks: locks,
       settings,
       exercises,
+      protocols,
+      protocolChanges,
     };
 
     const jsonContent = JSON.stringify(exportData, null, 2);

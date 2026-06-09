@@ -234,25 +234,27 @@ export function WeeklyReviewContent({
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Week Navigator */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-bg-card border border-border p-4 rounded-xl">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateWeek('prev')}
-            disabled={selectedWeekIndex === 0}
-            className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <span className="text-lg font-bold text-text-primary font-mono select-none">
-            {selectedWeek.label}
-          </span>
-          <button
-            onClick={() => navigateWeek('next')}
-            disabled={selectedWeekIndex === weeks.length - 1}
-            className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
-          >
-            <ChevronRight size={20} />
-          </button>
-          <span className="text-xs text-text-secondary font-mono ml-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateWeek('prev')}
+              disabled={selectedWeekIndex === 0}
+              className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="text-lg font-bold text-text-primary font-mono select-none whitespace-nowrap">
+              {selectedWeek.label}
+            </span>
+            <button
+              onClick={() => navigateWeek('next')}
+              disabled={selectedWeekIndex === weeks.length - 1}
+              className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+          <span className="text-xs text-text-secondary font-mono">
             ({selectedWeek.rangeStr})
           </span>
         </div>

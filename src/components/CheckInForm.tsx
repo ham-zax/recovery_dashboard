@@ -34,13 +34,14 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handleMinus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover touch-manipulation transition-colors"
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all"
       >
         <Minus size={20} />
       </button>
       <input
         id={id}
-        type="number"
+        type="text"
+        inputMode="decimal"
         min={min}
         max={max}
         step={step}
@@ -49,9 +50,9 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
           onChange(e.target.value);
         }}
         onBlur={(e) => {
-          let val = e.target.value;
+          const val = e.target.value;
           if (val !== '') {
-            let num = Number(val);
+            const num = Number(val);
             if (!isNaN(num)) {
               onChange(String(clampNumber(num, min, max)));
             } else {
@@ -59,12 +60,13 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
             }
           }
         }}
-        className="flex-1 w-full text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none"
+        className="flex-1 min-w-[40px] w-full text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none placeholder:text-text-tertiary"
+        placeholder="0"
       />
       <button 
         type="button" 
         onClick={handlePlus}
-        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover touch-manipulation transition-colors"
+        className="px-5 h-full text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all"
       >
         <Plus size={20} />
       </button>
@@ -89,12 +91,12 @@ interface CheckInFormProps {
 
 export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormProps) {
   const router = useRouter();
-  const [pain, setPain] = useState<number>(initialData?.pain ?? 5);
-  const [reflux, setReflux] = useState<number>(initialData?.reflux ?? 5);
+  const [pain, setPain] = useState<string>(String(initialData?.pain ?? 5));
+  const [reflux, setReflux] = useState<string>(String(initialData?.reflux ?? 5));
   const [walkedToday, setWalkedToday] = useState<boolean>(initialData?.walkedToday ?? false);
   const [strengthToday, setStrengthToday] = useState<boolean>(initialData?.strengthToday ?? false);
-  const [sleepHours, setSleepHours] = useState<number | ''>(initialData?.sleepHours ?? 8.0);
-  const [sittingBreaksActual, setSittingBreaksActual] = useState<number | ''>(initialData?.sittingBreaksActual ?? 0);
+  const [sleepHours, setSleepHours] = useState<string>(initialData?.sleepHours !== undefined ? String(initialData.sleepHours) : '8');
+  const [sittingBreaksActual, setSittingBreaksActual] = useState<string>(initialData?.sittingBreaksActual !== undefined ? String(initialData.sittingBreaksActual) : '0');
   const [notes, setNotes] = useState<string>(initialData?.notes ?? '');
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -106,12 +108,12 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
   // Sync state if initialData changes
   useEffect(() => {
     if (!initialized.current && initialData) {
-      setPain(initialData.pain);
-      setReflux(initialData.reflux);
+      setPain(String(initialData.pain));
+      setReflux(String(initialData.reflux));
       setWalkedToday(initialData.walkedToday);
       setStrengthToday(initialData.strengthToday);
-      setSleepHours(initialData.sleepHours);
-      setSittingBreaksActual(initialData.sittingBreaksActual);
+      setSleepHours(String(initialData.sleepHours));
+      setSittingBreaksActual(String(initialData.sittingBreaksActual));
       setNotes(initialData.notes ?? '');
       initialized.current = true;
     }
@@ -130,8 +132,8 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pain,
-          reflux,
+          pain: Number(pain) || 0,
+          reflux: Number(reflux) || 0,
           walkedToday,
           strengthToday,
           sleepHours: Number(sleepHours) || 0,
@@ -175,7 +177,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
             max={10}
             step={1}
             value={pain}
-            onChange={(v) => setPain(v === '' ? 0 : parseInt(v, 10))}
+            onChange={(v) => setPain(v)}
           />
         </div>
 
@@ -190,7 +192,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
             max={10}
             step={1}
             value={reflux}
-            onChange={(v) => setReflux(v === '' ? 0 : parseInt(v, 10))}
+            onChange={(v) => setReflux(v)}
           />
         </div>
       </div>
@@ -235,7 +237,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
             max={24}
             step={0.5}
             value={sleepHours}
-            onChange={(v) => setSleepHours(v === '' ? '' : parseFloat(v))}
+            onChange={(v) => setSleepHours(v)}
           />
         </div>
 
@@ -248,7 +250,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
             min={0}
             step={1}
             value={sittingBreaksActual}
-            onChange={(v) => setSittingBreaksActual(v === '' ? '' : parseInt(v, 10))}
+            onChange={(v) => setSittingBreaksActual(v)}
           />
         </div>
       </div>

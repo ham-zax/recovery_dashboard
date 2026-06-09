@@ -331,7 +331,7 @@ export function SettingsContent({
                       type="text"
                       value={lockVersion}
                       onChange={(e) => setLockVersion(e.target.value)}
-                      className="w-full bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
+                      className="w-full bg-bg-input border border-border rounded-xl px-4 h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
                       placeholder="v1.0"
                     />
                   </div>
@@ -344,7 +344,7 @@ export function SettingsContent({
                       value={lockDate}
                       onChange={(e) => setLockDate(e.target.value)}
                       min={lock ? format(new Date(lock.lockedUntil), 'yyyy-MM-dd') : undefined}
-                      className="w-full bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
+                      className="w-full bg-bg-input border border-border rounded-xl px-4 h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
                     />
                   </div>
                 </div>
