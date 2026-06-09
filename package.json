@@ -13,6 +13,7 @@
     "verify:lock": "tsx scripts/verify-protocol-lock.ts",
     "verify:empty": "tsx scripts/verify-empty-db.ts",
     "verify-all": "npm run verify && npm run verify:invariants && npm run verify:lock && npm run verify:empty",
+    "db:push:live": "tsx scripts/migrate-turso.ts",
     "test": "npm run lint && npm run build && npm run verify-all",
     "postinstall": "prisma generate"
   },
