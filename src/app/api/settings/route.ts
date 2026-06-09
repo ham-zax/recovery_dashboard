@@ -49,11 +49,30 @@ export async function POST(request: NextRequest) {
         'protocol_duration_days',
       ];
 
-      const attemptedChanges = Object.keys(settings).filter(key => lockedKeys.includes(key));
+      const attemptedChanges = [];
+      for (const key of lockedKeys) {
+        if (key in settings) {
+          const existingSetting = await prisma.setting.findUnique({
+            where: { key },
+          });
+          const existingValue = existingSetting ? existingSetting.value : '';
+          const newValue = String(settings[key]);
+          if (existingValue !== newValue) {
+            attemptedChanges.push(key);
+          }
+        }
+      }
       
       if (attemptedChanges.length > 0) {
+        const formattedDate = latestLock
+          ? new Date(latestLock.lockedUntil).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : 'set date';
         return NextResponse.json({
-          error: `Protocol is locked until ${latestLock?.lockedUntil.toLocaleDateString()}. Cannot modify protocol settings: ${attemptedChanges.join(', ')}.`,
+          error: `Protocol is locked until ${formattedDate}. Cannot modify protocol settings: ${attemptedChanges.join(', ')}.`,
         }, { status: 403 });
       }
     }

@@ -35,10 +35,23 @@ async function main() {
     { name: 'Carry', category: 'UPPER', sortOrder: 3 },
   ];
 
-  // Clear and re-seed exercises
-  await prisma.exercise.deleteMany();
+  // Seed exercises if they don't exist, update if they do
   for (const exercise of [...lowerExercises, ...upperExercises]) {
-    await prisma.exercise.create({ data: exercise });
+    const existing = await prisma.exercise.findFirst({
+      where: { name: exercise.name },
+    });
+    if (!existing) {
+      await prisma.exercise.create({ data: exercise });
+    } else {
+      await prisma.exercise.update({
+        where: { id: existing.id },
+        data: {
+          category: exercise.category,
+          sortOrder: exercise.sortOrder,
+          active: true,
+        },
+      });
+    }
   }
 
   // Seed settings

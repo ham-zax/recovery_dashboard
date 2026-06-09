@@ -116,17 +116,6 @@ export function CheckInForm({ initialData, sittingBreaksTarget }: CheckInFormPro
               background: `linear-gradient(to right, var(--color-accent-purple) ${(pain / 10) * 100}%, var(--color-bg-input) ${(pain / 10) * 100}%)`
             }}
           />
-          <style jsx>{`
-            input[type=range]::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              height: 24px;
-              width: 24px;
-              border-radius: 50%;
-              background: white;
-              cursor: pointer;
-              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            }
-          `}</style>
         </div>
       </div>
 

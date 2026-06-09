@@ -16,7 +16,7 @@ function walk(dir: string, fileCallback: (filePath: string) => void) {
 }
 
 walk(path.join(process.cwd(), 'src'), (filePath) => {
-  let content = fs.readFileSync(filePath, 'utf-8');
+  const content = fs.readFileSync(filePath, 'utf-8');
   let newContent = content
     .replace(/'\/recovery\/api/g, "'/api")
     .replace(/`\/recovery\/api/g, "`/api")

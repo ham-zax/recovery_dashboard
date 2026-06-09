@@ -33,12 +33,11 @@ export function BottomNav() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
-              pathname === item.href ||
-              (item.href !== '' && pathname.startsWith(item.href));
-            const isExactDashboard =
-              item.href === '' && pathname === '';
+              item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href);
 
-            const active = isActive || isExactDashboard;
+            const active = isActive;
 
             return (
               <Link
