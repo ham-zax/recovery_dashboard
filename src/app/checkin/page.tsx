@@ -16,6 +16,10 @@ export default async function CheckInPage(props: { searchParams: Promise<{ date?
 
   const targetDate = startOfDayUtc(searchParams.date);
 
+  if (isNaN(targetDate.getTime())) {
+    return <DateRedirect />;
+  }
+
   // Fetch today's check-in
   const targetCheckIn = await prisma.dailyLog.findUnique({
     where: { date: targetDate },

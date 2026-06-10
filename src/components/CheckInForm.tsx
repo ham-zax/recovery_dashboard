@@ -105,6 +105,14 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
   const [success, setSuccess] = useState<boolean>(false);
 
   const initialized = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   // Sync state if initialData changes
   useEffect(() => {
@@ -154,8 +162,8 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
       router.refresh();
       
       // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        router.push('/');
+      timeoutRef.current = setTimeout(() => {
+        router.replace('/');
       }, 800);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred';

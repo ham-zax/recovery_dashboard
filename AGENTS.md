@@ -79,3 +79,7 @@ After making code changes, always verify:
 - Don't add social features
 - Don't track PRI, posture, or symptom details
 - Don't use `pages/` directory — App Router only
+
+## Agent Autonomy & Approval
+
+- **NEVER** take unprompted actions. **Do not commit or merge unless the user explicitly says so.** You must explicitly notify the user of what you intend to do and get approved by the user first before executing. or do only what the user explicitly asks you to do.
