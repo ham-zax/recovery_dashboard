@@ -52,6 +52,13 @@ body {
   min-height: 100vh;
 }
 
+/* Prevent iOS Zoom on Inputs */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Typography utilities */
 @utility text-hero-score {
   font-size: 72px;

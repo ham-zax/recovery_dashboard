@@ -8,6 +8,7 @@ import { formatUtc, startOfDayUtc } from '@/lib/validation';
 import { getRecoveryStatus } from '@/lib/score';
 import { getPainState, getRefluxState, getStrengthState } from '@/lib/metricInterpretation';
 import { TrendChart } from './charts/TrendChart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select';
 import { MetricCard } from './MetricCard';
 import { WeeklyReviewResponse } from '@/lib/reviewData';
 
@@ -176,7 +177,7 @@ export function WeeklyReviewContent({
 
   if (loading && !data) {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto pb-24 md:pb-6">
         <div className="h-10 w-64 bg-bg-card border border-border animate-pulse rounded-lg" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -233,7 +234,7 @@ export function WeeklyReviewContent({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-24 md:pb-6">
       {/* Week Navigator */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-bg-card border border-border p-4 rounded-xl">
         <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +242,7 @@ export function WeeklyReviewContent({
             <button
               onClick={() => navigateWeek('prev')}
               disabled={selectedWeekIndex === 0}
-              className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
+              className="h-11 w-11 flex items-center justify-center text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
             >
               <ChevronLeft size={20} />
             </button>
@@ -251,7 +252,7 @@ export function WeeklyReviewContent({
             <button
               onClick={() => navigateWeek('next')}
               disabled={selectedWeekIndex === weeks.length - 1}
-              className="p-1.5 text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
+              className="h-11 w-11 flex items-center justify-center text-text-secondary hover:text-text-primary disabled:opacity-40 hover:bg-bg-card-hover rounded-lg transition-colors cursor-pointer"
             >
               <ChevronRight size={20} />
             </button>
@@ -261,17 +262,21 @@ export function WeeklyReviewContent({
           </span>
         </div>
 
-        <select
-          value={selectedWeekIndex}
-          onChange={(e) => setSelectedWeekIndex(parseInt(e.target.value))}
-          className="bg-bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-text-secondary focus:border-border-focus font-mono outline-none"
+        <Select
+          value={String(selectedWeekIndex)}
+          onValueChange={(v) => setSelectedWeekIndex(parseInt(v))}
         >
-          {weeks.map((w) => (
-            <option key={w.index} value={w.index}>
-              {w.label} ({formatUtc(w.startDate, 'MMM dd')} – {formatUtc(w.endDate, 'MMM dd')})
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full sm:w-[320px] min-h-[44px] font-mono text-text-secondary border-border bg-bg-input">
+            <SelectValue placeholder="Select week" />
+          </SelectTrigger>
+          <SelectContent>
+            {weeks.map((w) => (
+              <SelectItem key={w.index} value={String(w.index)}>
+                {w.label} ({formatUtc(w.startDate, 'MMM dd')} – {formatUtc(w.endDate, 'MMM dd')})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

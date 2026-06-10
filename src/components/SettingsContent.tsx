@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/Dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 export interface Exercise {
   id: number;
@@ -497,19 +498,23 @@ export function SettingsContent({
 
               <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="text-sm text-text-primary font-medium">Weekly Review Day</label>
-                <select
+                <Select
                   value={settings.weekly_review_day ?? 'sunday'}
-                  onChange={(e) => handleUpdateSetting('weekly_review_day', e.target.value)}
-                  className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none w-full sm:w-48 transition-colors"
+                  onValueChange={(val) => handleUpdateSetting('weekly_review_day', val)}
                 >
-                  <option value="monday">Monday</option>
-                  <option value="tuesday">Tuesday</option>
-                  <option value="wednesday">Wednesday</option>
-                  <option value="thursday">Thursday</option>
-                  <option value="friday">Friday</option>
-                  <option value="saturday">Saturday</option>
-                  <option value="sunday">Sunday</option>
-                </select>
+                  <SelectTrigger className="w-full sm:w-48 bg-bg-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monday">Monday</SelectItem>
+                    <SelectItem value="tuesday">Tuesday</SelectItem>
+                    <SelectItem value="wednesday">Wednesday</SelectItem>
+                    <SelectItem value="thursday">Thursday</SelectItem>
+                    <SelectItem value="friday">Friday</SelectItem>
+                    <SelectItem value="saturday">Saturday</SelectItem>
+                    <SelectItem value="sunday">Sunday</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {!locked && (
@@ -615,16 +620,20 @@ export function SettingsContent({
                 return (
                   <div key={k} className="px-5 py-3 flex justify-between items-center">
                     <span className="text-sm text-text-primary font-medium">{day.label}</span>
-                    <select
+                    <Select
                       value={sch[k]}
                       disabled={locked}
-                      onChange={(e) => handleUpdateSchedule(k, e.target.value)}
-                      className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none disabled:opacity-50 transition-colors w-36"
+                      onValueChange={(val) => handleUpdateSchedule(k, val)}
                     >
-                      <option value="REST">REST Day</option>
-                      <option value="LOWER">LOWER Body</option>
-                      <option value="UPPER">UPPER Body</option>
-                    </select>
+                      <SelectTrigger className="w-36 bg-bg-input">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="REST">REST Day</SelectItem>
+                        <SelectItem value="LOWER">LOWER Body</SelectItem>
+                        <SelectItem value="UPPER">UPPER Body</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })}
@@ -703,14 +712,18 @@ export function SettingsContent({
                                 onChange={(e) => setEditingExerciseName(e.target.value)}
                                 className="flex-1 bg-bg-card border border-border rounded-lg px-3 min-h-[44px] text-sm text-text-primary outline-none focus:border-border-focus transition-colors"
                               />
-                              <select
+                              <Select
                                 value={editingExerciseCategory}
-                                onChange={(e) => setEditingExerciseCategory(e.target.value as 'LOWER' | 'UPPER')}
-                                className="bg-bg-card border border-border rounded-lg px-3 min-h-[44px] text-sm text-text-primary outline-none focus:border-border-focus transition-colors"
+                                onValueChange={(val) => setEditingExerciseCategory(val as 'LOWER' | 'UPPER')}
                               >
-                                <option value="LOWER">LOWER</option>
-                                <option value="UPPER">UPPER</option>
-                              </select>
+                                <SelectTrigger className="w-[120px] bg-bg-card">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="LOWER">LOWER</SelectItem>
+                                  <SelectItem value="UPPER">UPPER</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleSaveEditExercise(ex.id)}
@@ -771,15 +784,19 @@ export function SettingsContent({
                   placeholder={locked ? "Protocol is locked" : "e.g. Face Pulls..."}
                   className="flex-1 bg-bg-input border border-border disabled:opacity-50 rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors"
                 />
-                <select
+                <Select
                   value={newExerciseCategory}
-                  onChange={(e) => setNewExerciseCategory(e.target.value as 'LOWER' | 'UPPER')}
                   disabled={locked}
-                  className="bg-bg-input border border-border disabled:opacity-50 rounded-xl px-4 min-h-[44px] text-sm text-text-primary focus:border-border-focus outline-none transition-colors w-full sm:w-32"
+                  onValueChange={(val) => setNewExerciseCategory(val as 'LOWER' | 'UPPER')}
                 >
-                  <option value="LOWER">LOWER</option>
-                  <option value="UPPER">UPPER</option>
-                </select>
+                  <SelectTrigger className="w-full sm:w-[140px] bg-bg-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOWER">LOWER</SelectItem>
+                    <SelectItem value="UPPER">UPPER</SelectItem>
+                  </SelectContent>
+                </Select>
                 <button
                   onClick={handleAddExercise}
                   disabled={locked}

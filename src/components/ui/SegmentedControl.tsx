@@ -16,8 +16,8 @@ export function SegmentedControl({
   onChange,
   size = 'md',
 }: SegmentedControlProps) {
-  const heights = { sm: 'h-8', md: 'h-9' };
-  const textSizes = { sm: 'text-[11px]', md: 'text-[13px]' };
+  const heights = { sm: 'min-h-[36px] sm:min-h-[32px]', md: 'min-h-[44px] sm:min-h-[36px]' };
+  const textSizes = { sm: 'text-[13px] sm:text-[11px]', md: 'text-[15px] sm:text-[13px]' };
 
   return (
     <RadioGroup.Root

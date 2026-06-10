@@ -112,7 +112,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                   value={set.weight !== null ? set.weight : ''}
                   onChange={(e) => handleWeightChange(idx, e.target.value)}
                   placeholder={lastSet?.weight != null ? String(lastSet.weight) : '--'}
-                  className="w-full bg-bg-input border border-border rounded-md px-2 py-1.5 text-center font-mono text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40"
+                  className="w-full bg-bg-input border border-border rounded-md px-2 py-2 min-h-[40px] text-center font-mono text-[16px] md:text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40 transition-colors"
                 />
 
                 <input 
@@ -123,7 +123,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                   value={set.reps !== null ? set.reps : ''}
                   onChange={(e) => handleRepsChange(idx, e.target.value)}
                   placeholder={lastSet?.reps != null ? String(lastSet.reps) : '--'}
-                  className="w-full bg-bg-input border border-border rounded-md px-2 py-1.5 text-center font-mono text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40"
+                  className="w-full bg-bg-input border border-border rounded-md px-2 py-2 min-h-[40px] text-center font-mono text-[16px] md:text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40 transition-colors"
                 />
 
                 <input 
@@ -135,7 +135,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                   value={set.rpe !== null ? set.rpe : ''}
                   onChange={(e) => handleRpeChange(idx, e.target.value)}
                   placeholder={lastSet?.rpe != null ? String(lastSet.rpe) : '--'}
-                  className="w-full bg-bg-input border border-border rounded-md px-2 py-1.5 text-center font-mono text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40"
+                  className="w-full bg-bg-input border border-border rounded-md px-2 py-2 min-h-[40px] text-center font-mono text-[16px] md:text-[13px] text-text-primary outline-none focus:border-border-focus placeholder:text-text-tertiary/40 transition-colors"
                 />
 
                 <div className="flex justify-end">
@@ -144,10 +144,10 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                       id={`remove-set-btn-${exercise.id}-${idx}`}
                       type="button" 
                       onClick={() => removeSet(idx)} 
-                      className="text-text-tertiary hover:text-accent-red opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                      className="text-text-tertiary hover:text-accent-red opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center h-11 w-11 cursor-pointer rounded-md hover:bg-accent-red/10"
                       title="Remove set"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
@@ -172,7 +172,7 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
                 <button
                   type="button"
                   onClick={handleCopyLast}
-                  className="ml-2 text-[10px] uppercase tracking-wide font-bold text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                  className="ml-2 text-[10px] sm:text-[11px] uppercase tracking-wide font-bold text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-3 min-h-[36px] sm:min-h-[28px] rounded-md cursor-pointer transition-colors flex items-center justify-center"
                 >
                   Copy Last
                 </button>
@@ -186,9 +186,9 @@ export function ExerciseCard({ exercise, sets, lastSession, onChange }: Exercise
           id={`add-set-btn-${exercise.id}`}
           type="button"
           onClick={addSet}
-          className="flex items-center justify-center sm:w-auto w-full text-xs font-mono font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-3 py-1.5 rounded-md transition-colors cursor-pointer touch-manipulation"
+          className="flex items-center justify-center sm:w-auto w-full text-sm sm:text-xs font-mono font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 px-4 min-h-[44px] sm:min-h-[32px] rounded-md transition-colors cursor-pointer touch-manipulation"
         >
-          <Plus size={14} className="mr-1" /> Add Set
+          <Plus size={16} className="mr-1 sm:w-3.5 sm:h-3.5" /> Add Set
         </button>
       </div>
     </div>

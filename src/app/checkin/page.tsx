@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import { prisma } from '@/lib/prisma';
 import { CheckInForm } from '@/components/CheckInForm';
 import { startOfDayUtc, formatUtc } from '@/lib/validation';

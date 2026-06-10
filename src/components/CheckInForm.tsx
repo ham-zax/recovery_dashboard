@@ -35,8 +35,9 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handleMinus}
+        disabled={value !== null && Number(value) <= min}
         aria-label="Decrease value"
-        className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
+        className="w-12 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Minus size={20} />
       </button>
@@ -97,8 +98,9 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handlePlus}
+        disabled={max !== undefined && value !== null && Number(value) >= max}
         aria-label="Increase value"
-        className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
+        className="w-12 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Plus size={20} />
       </button>
