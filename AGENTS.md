@@ -30,6 +30,8 @@ Built with Next.js 16 (App Router) + Prisma + SQLite + Tailwind CSS v4 + Chart.j
 - Components go in `src/components/`. Subdirectories: `ui/`, `charts/`.
 - One component per file. Named exports preferred.
 - All interactive elements must have unique, descriptive `id` attributes.
+- **Defensive Multi-Instance Support**: Never hardcode HTML/SVG `id`s (like `id="gradient"`). Always use `useId()` and assume a component might be rendered multiple times on the same page.
+- **State Transition Defense**: Defend against fast clicks (use `isSubmitting` / `disabled` states). Defend against identical prop updates breaking animations/`useEffect` logic.
 
 ### API Routes
 - Route handlers in `src/app/recovery/api/[resource]/route.ts`
@@ -56,11 +58,11 @@ Built with Next.js 16 (App Router) + Prisma + SQLite + Tailwind CSS v4 + Chart.j
 
 ## Verification Loops
 
-After making code changes, always verify:
+You must ACTUALLY EXECUTE these checks autonomously before ending your turn and asking the user for review. Do not rely on the user to run the linter or builder for you.
 
-1. **Build check**: `npm run build` — must pass with zero errors
-2. **Lint check**: `npm run lint` — must pass
-3. **Dev server**: `npm run dev` — app loads without console errors
+1. **Lint check**: `npm run lint` — Must be run *before* handoff to catch unused imports after refactoring.
+2. **Build check**: `npm run build` — Must pass with zero errors.
+3. **Dev server**: `npm run dev` — app loads without console errors.
 4. **Prisma**: After schema changes, run `npx prisma migrate dev` then `npx prisma generate`
 
 ## Key Design Decisions
