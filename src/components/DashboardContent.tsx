@@ -128,19 +128,19 @@ export function DashboardContent({ protocolStrip, initialData }: DashboardConten
 
       {loading || !data ? (
         /* Loading Skeleton */
-        <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full animate-pulse">
+        <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full">
           {/* Recovery Hero Skeleton */}
-          <div className="w-full bg-bg-card border border-border rounded-xl h-64 flex flex-col items-center justify-center">
+          <div className="w-full skeleton-shimmer border border-border rounded-xl h-64 flex flex-col items-center justify-center">
             <div className="w-24 h-24 rounded-full border-4 border-border/40"></div>
             <div className="h-4 w-20 bg-border/40 rounded mt-4"></div>
           </div>
           {/* Metric Cards Skeleton */}
           <div className="w-full grid grid-cols-2 md:grid-cols-5 gap-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-bg-card border border-border rounded-xl p-5 h-28 flex flex-col justify-between">
+              <div key={i} className="skeleton-shimmer border border-border rounded-xl p-5 h-[105px] flex flex-col justify-between">
                 <div>
-                  <div className="h-3 w-16 bg-border/40 rounded"></div>
-                  <div className="h-5 w-16 bg-border/40 rounded mt-2"></div>
+                  <div className="h-2.5 w-12 bg-border/40 rounded"></div>
+                  <div className="h-6 w-16 bg-border/40 rounded mt-3"></div>
                 </div>
               </div>
             ))}

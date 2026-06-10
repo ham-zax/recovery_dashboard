@@ -44,8 +44,8 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
   if (loading) {
     return (
       <div className="space-y-6 max-w-5xl mx-auto pb-24">
-        <div className="h-8 w-48 bg-bg-card animate-pulse rounded-lg border border-border" />
-        <div className="h-64 bg-bg-card animate-pulse rounded-2xl border border-border" />
+        <div className="h-8 w-48 skeleton-shimmer rounded-lg border border-border" />
+        <div className="h-64 skeleton-shimmer rounded-2xl border border-border" />
       </div>
     );
   }

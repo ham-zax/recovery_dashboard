@@ -118,7 +118,15 @@ export default function RootLayout({
             theme="dark" 
             position="top-center"
             toastOptions={{
-              className: 'bg-bg-input/80 backdrop-blur-md border border-border text-text-primary rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)]',
+              classNames: {
+                toast: "bg-bg-elevated/70 backdrop-blur-2xl border border-[rgba(255,255,255,0.08)] text-text-primary rounded-2xl shadow-2xl py-3 px-4",
+                title: "text-[15px] font-semibold tracking-tight",
+                description: "text-[13px] text-text-secondary",
+                success: "border-accent-green/30 bg-accent-green/5 text-accent-green",
+                error: "border-accent-red/30 bg-accent-red/5 text-accent-red",
+                warning: "border-accent-amber/30 bg-accent-amber/5 text-accent-amber",
+                info: "border-accent-blue/30 bg-accent-blue/5 text-accent-blue",
+              }
             }}
           />
           <CommandPalette />
