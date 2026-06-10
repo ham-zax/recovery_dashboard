@@ -6,6 +6,8 @@ import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Pl
 import { formatUtc } from '@/lib/validation';
 import { parseBoundedInt } from '@/lib/validation';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +90,7 @@ export function SettingsContent({
   const [editingExerciseName, setEditingExerciseName] = useState<string>('');
   const [editingExerciseCategory, setEditingExerciseCategory] = useState<'LOWER' | 'UPPER'>('LOWER');
   const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Protocol Lock form state
   const [lockVersion, setLockVersion] = useState<string>(initialLock?.version || 'v1.0');
@@ -269,7 +272,8 @@ export function SettingsContent({
   };
 
   const handleDeactivateExercise = async () => {
-    if (!exerciseToDelete) return;
+    if (!exerciseToDelete || isDeleting) return;
+    setIsDeleting(true);
     
     try {
       const res = await fetch(`/api/exercises/${exerciseToDelete.id}`, {
@@ -283,6 +287,8 @@ export function SettingsContent({
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error deactivating exercise');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -349,12 +355,11 @@ export function SettingsContent({
                     <label className="block text-xs text-text-secondary font-semibold uppercase tracking-wider">
                       Lock Until
                     </label>
-                    <input
-                      type="date"
-                      value={lockDate}
-                      onChange={(e) => setLockDate(e.target.value)}
-                      min={lock ? formatUtc(lock.lockedUntil, 'yyyy-MM-dd') : undefined}
-                      className="w-full bg-bg-input border border-border rounded-xl px-4 h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none transition-colors"
+                    <DatePicker
+                      value={lockDate ? new Date(lockDate + 'T00:00:00') : undefined}
+                      onChange={(d) => setLockDate(d ? format(d, 'yyyy-MM-dd') : '')}
+                      minDate={lock ? new Date(formatUtc(lock.lockedUntil, 'yyyy-MM-dd') + 'T00:00:00') : undefined}
+                      disabled={false}
                     />
                   </div>
                 </div>
@@ -443,13 +448,13 @@ export function SettingsContent({
             <div className="flex flex-col divide-y divide-border">
               <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="text-sm text-text-primary font-medium">Protocol Start Date</label>
-                <input
-                  type="date"
-                  value={settings.protocol_start_date ?? ''}
-                  disabled={locked}
-                  onChange={(e) => handleUpdateSetting('protocol_start_date', e.target.value)}
-                  className="bg-bg-input border border-border rounded-xl px-4 min-h-[44px] text-sm font-mono text-text-primary focus:border-border-focus outline-none disabled:opacity-50 w-full sm:w-auto transition-colors"
-                />
+                <div className="w-full sm:w-[200px]">
+                  <DatePicker
+                    value={settings.protocol_start_date ? new Date(settings.protocol_start_date + 'T00:00:00') : undefined}
+                    onChange={(d) => handleUpdateSetting('protocol_start_date', d ? format(d, 'yyyy-MM-dd') : '')}
+                    disabled={locked}
+                  />
+                </div>
               </div>
               
               <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -849,15 +854,17 @@ export function SettingsContent({
           <DialogFooter>
             <button 
               onClick={() => setExerciseToDelete(null)}
-              className="px-4 py-2 bg-transparent text-text-secondary hover:text-text-primary font-semibold rounded-xl transition-all"
+              disabled={isDeleting}
+              className="px-4 py-2 bg-transparent text-text-secondary hover:text-text-primary font-semibold rounded-xl transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button 
               onClick={handleDeactivateExercise}
-              className="px-4 py-2 bg-accent-red text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
+              disabled={isDeleting}
+              className="px-4 py-2 bg-accent-red text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
             >
-              Deactivate
+              {isDeleting ? 'Deactivating...' : 'Deactivate'}
             </button>
           </DialogFooter>
         </DialogContent>

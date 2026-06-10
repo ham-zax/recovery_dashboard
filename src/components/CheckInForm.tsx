@@ -66,6 +66,31 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
             }
           }
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            handlePlus();
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            handleMinus();
+          } else if (e.key === 'PageUp') {
+            e.preventDefault();
+            const current = value === null || value === '' ? min : Number(value);
+            const next = max !== undefined ? Math.min(max, current + step * 10) : current + step * 10;
+            onChange(Number(next.toFixed(2)).toString());
+          } else if (e.key === 'PageDown') {
+            e.preventDefault();
+            const current = value === null || value === '' ? min : Number(value);
+            const next = Math.max(min, current - step * 10);
+            onChange(Number(next.toFixed(2)).toString());
+          } else if (e.key === 'Home') {
+            e.preventDefault();
+            onChange(String(min));
+          } else if (e.key === 'End' && max !== undefined) {
+            e.preventDefault();
+            onChange(String(max));
+          }
+        }}
         className="flex-1 w-0 min-w-0 text-center bg-transparent text-text-primary font-mono text-xl font-bold outline-none placeholder:text-text-tertiary"
         placeholder="0"
       />
@@ -206,8 +231,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
         <button
           id="walk-yes-btn"
           type="button"
-          role="switch"
-          aria-checked={walkedToday}
+          aria-pressed={walkedToday}
           onClick={() => setWalkedToday(!walkedToday)}
           className={`flex items-center justify-center gap-2 h-[56px] rounded-full border text-[15px] font-medium transition-all ${
             walkedToday
@@ -220,8 +244,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
         <button
           id="strength-yes-btn"
           type="button"
-          role="switch"
-          aria-checked={strengthToday}
+          aria-pressed={strengthToday}
           onClick={() => setStrengthToday(!strengthToday)}
           className={`flex items-center justify-center gap-2 h-[56px] rounded-full border text-[15px] font-medium transition-all ${
             strengthToday

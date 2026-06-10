@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { ExerciseCard, SetData } from './ExerciseCard';
 import { SegmentedControl } from './ui/SegmentedControl';
+import { DatePicker } from './ui/DatePicker';
 
 interface Exercise {
   id: number;
@@ -70,6 +71,10 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
     setIsLoading(true);
 
     try {
+      if (!date) {
+        throw new Error('Please select a workout date.');
+      }
+
       // Prepare payload: only send exercises from the selected category that have logged sets
       const exercisesPayload = activeCategoryExercises
         .map((ex) => {
@@ -113,6 +118,7 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
 
       toast.success('Workout logged');
       setNotes('');
+      router.push('/');
       
       // Reset sets to default
       setWorkoutSets((prev) => {
@@ -143,13 +149,9 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
           <label htmlFor="workout-date" className="block text-sm font-medium text-text-secondary mb-2">
             Workout Date
           </label>
-          <input
-            id="workout-date"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-bg-input border border-border text-text-primary rounded-lg px-3 py-2 font-mono focus:border-border-focus outline-none text-sm"
+          <DatePicker
+            value={date ? new Date(date + 'T00:00:00') : undefined}
+            onChange={(d) => setDate(d ? format(d, 'yyyy-MM-dd') : '')}
           />
         </div>
         <div>
