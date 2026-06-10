@@ -2,22 +2,30 @@ import { format } from 'date-fns';
 import { prisma } from '@/lib/prisma';
 import { CheckInForm } from '@/components/CheckInForm';
 import { startOfDayUtc, formatUtc } from '@/lib/validation';
+import Link from 'next/link';
+import { DateRedirect } from '@/components/DateRedirect';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CheckInPage() {
-  const today = startOfDayUtc(new Date());
+export default async function CheckInPage(props: { searchParams: Promise<{ date?: string }> }) {
+  const searchParams = await props.searchParams;
+  
+  if (!searchParams.date) {
+    return <DateRedirect />;
+  }
+
+  const targetDate = startOfDayUtc(searchParams.date);
 
   // Fetch today's check-in
-  const todayCheckIn = await prisma.dailyLog.findUnique({
-    where: { date: today },
+  const targetCheckIn = await prisma.dailyLog.findUnique({
+    where: { date: targetDate },
   });
 
-  // Fetch last 3 days of check-ins (before today)
+  // Fetch last 3 days of check-ins (before targetDate)
   const previousLogs = await prisma.dailyLog.findMany({
     where: {
       date: {
-        lt: today,
+        lt: targetDate,
       },
     },
     orderBy: {
@@ -35,19 +43,19 @@ export default async function CheckInPage() {
   const sittingBreaksTarget = activeProtocol?.sittingTarget || 10;
 
   // Prepare initial data if today's check-in exists
-  const initialData = todayCheckIn
+  const initialData = targetCheckIn
     ? {
-        pain: todayCheckIn.pain,
-        reflux: todayCheckIn.reflux,
-        walkedToday: todayCheckIn.walkedToday,
-        strengthToday: todayCheckIn.strengthToday,
-        sleepHours: todayCheckIn.sleepHours,
-        sittingBreaksActual: todayCheckIn.sittingBreaksActual,
-        notes: todayCheckIn.notes,
+        pain: targetCheckIn.pain,
+        reflux: targetCheckIn.reflux,
+        walkedToday: targetCheckIn.walkedToday,
+        strengthToday: targetCheckIn.strengthToday,
+        sleepHours: targetCheckIn.sleepHours,
+        sittingBreaksActual: targetCheckIn.sittingBreaksActual,
+        notes: targetCheckIn.notes,
       }
     : null;
 
-  const dateStr = formatUtc(today, 'yyyy-MM-dd');
+  const dateStr = formatUtc(targetDate, 'yyyy-MM-dd');
 
   return (
     <div className="max-w-md mx-auto px-4 pb-24 pt-4">
@@ -57,7 +65,7 @@ export default async function CheckInPage() {
           Daily Check-In
         </h2>
         <p className="text-text-secondary text-[17px] mt-1 font-medium">
-          {format(new Date(), 'EEEE, MMMM d')}
+          {formatUtc(targetDate, 'EEEE, MMMM d')}
         </p>
       </div>
 
@@ -78,9 +86,10 @@ export default async function CheckInPage() {
               <div className="divide-y divide-border">
                 {previousLogs.map((log) => {
                   const formattedDate = formatUtc(log.date, 'MMM d');
+                  const logDateStr = formatUtc(log.date, 'yyyy-MM-dd');
                   
                   return (
-                    <div key={log.id} className="p-4">
+                    <Link href={`/checkin?date=${logDateStr}`} key={log.id} className="p-4 block hover:bg-bg-card-hover transition-colors">
                       <div className="flex justify-between items-center">
                         <span className="text-text-primary font-medium">{formattedDate}</span>
                         <div className="text-text-secondary text-[15px] flex items-center gap-1.5">
@@ -89,7 +98,7 @@ export default async function CheckInPage() {
                           <span>{log.sleepHours}h</span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

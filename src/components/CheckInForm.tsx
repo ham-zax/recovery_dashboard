@@ -153,10 +153,10 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
       setSuccess(true);
       router.refresh();
       
-      // Auto-hide success message after 3 seconds
+      // Redirect to dashboard after a short delay
       setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
+        router.push('/');
+      }, 800);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(msg);
@@ -287,12 +287,27 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
       <button
         id="checkin-save-btn"
         type="submit"
-        disabled={isLoading}
-        className={`w-full h-[56px] rounded-full font-semibold text-[17px] text-bg-primary bg-accent-purple hover:opacity-90 active:opacity-80 transition-all cursor-pointer ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+        disabled={isLoading || success}
+        className={`w-full h-[56px] rounded-full font-semibold text-[17px] text-bg-primary transition-all flex items-center justify-center gap-2 ${
+          success 
+            ? 'bg-accent-green cursor-default' 
+            : isLoading 
+              ? 'bg-accent-purple opacity-50 cursor-not-allowed' 
+              : 'bg-accent-purple hover:opacity-90 active:opacity-80 cursor-pointer'
         }`}
       >
-        {isLoading ? 'Saving...' : 'Save Check-In'}
+        {success ? (
+          <>
+            <Check size={20} strokeWidth={3} />
+            Saved! Redirecting...
+          </>
+        ) : isLoading ? (
+          'Saving...'
+        ) : initialData ? (
+          'Update Check-In'
+        ) : (
+          'Save Check-In'
+        )}
       </button>
     </form>
   );
