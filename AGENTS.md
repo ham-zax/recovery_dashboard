@@ -20,7 +20,8 @@ Built with Next.js 16 (App Router) + Prisma + SQLite + Tailwind CSS v4 + Chart.j
 - **Prisma 7** with SQLite — schema at `prisma/schema.prisma`
 - **Chart.js** via `react-chartjs-2` for all charts
 - **TypeScript** — strict mode, no `any` types
-- **No external UI libraries** — no shadcn, no MUI, no Radix. Build components from scratch with Tailwind.
+- **Headless UI Primitives Allowed** — Use Radix UI primitives for complex interactions (Dialogs, Tooltips, Dropdowns) to ensure accessibility and focus management. Use `sonner` for toasts.
+- **No Pre-styled UI Libraries** — Do NOT use styled Shadcn, MUI, or Radix Themes. Keep the "Liquid Glass" design system 100% custom and style all Radix primitives from scratch with Tailwind.
 
 ## Coding Conventions
 

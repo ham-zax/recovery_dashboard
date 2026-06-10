@@ -5,6 +5,16 @@ import { ArrowLeft, Target, Activity, CheckCircle2, History, Info, GitMerge } fr
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatUtc } from '@/lib/validation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/Dialog';
 
 export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
   const router = useRouter();
@@ -52,9 +62,6 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
   const changes = p.changes && p.changes.length > 0 ? p.changes[0] : null;
 
   async function handleClone() {
-    if (!confirm('This will create a new protocol version using these settings and activate it immediately. Continue?')) {
-      return;
-    }
     setCloning(true);
     try {
       const res = await fetch(`/api/protocols/${protocolId}/clone`, {
@@ -92,14 +99,39 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
         </div>
         <div className="flex gap-2">
           {!p.active && (
-            <button 
-              onClick={handleClone}
-              disabled={cloning}
-              className="px-4 py-2 bg-bg-card border border-border hover:border-text-secondary text-sm font-semibold rounded-xl text-text-primary transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              <History className="w-4 h-4" />
-              {cloning ? 'Cloning...' : 'Clone & Activate'}
-            </button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button 
+                  disabled={cloning}
+                  className="px-4 py-2 bg-bg-card border border-border hover:border-text-secondary text-sm font-semibold rounded-xl text-text-primary transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  <History className="w-4 h-4" />
+                  {cloning ? 'Cloning...' : 'Clone & Activate'}
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Clone Protocol</DialogTitle>
+                  <DialogDescription>
+                    This will create a new protocol version using these exact settings and activate it immediately. Are you sure you want to continue?
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <button className="px-4 py-2 bg-transparent text-text-secondary hover:text-text-primary font-semibold rounded-xl transition-all">
+                      Cancel
+                    </button>
+                  </DialogClose>
+                  <button 
+                    onClick={handleClone}
+                    disabled={cloning}
+                    className="px-4 py-2 bg-accent-purple text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {cloning ? 'Cloning...' : 'Confirm Clone'}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>

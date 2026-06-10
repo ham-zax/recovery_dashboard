@@ -2,9 +2,17 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2, ChevronDown, FileJson, FileSpreadsheet } from 'lucide-react';
 import { formatUtc } from '@/lib/validation';
 import { parseBoundedInt } from '@/lib/validation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/DropdownMenu';
 
 export interface Exercise {
   id: number;
@@ -776,21 +784,32 @@ export function SettingsContent({
               <p className="text-sm text-text-secondary leading-relaxed">
                 Download your complete recovery logs and workout session histories. Always open. Always yours.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href="/api/export?format=json"
-                  download
-                  className="flex-1 min-h-[44px] flex items-center justify-center border border-border hover:bg-bg-card-hover text-text-primary font-medium rounded-xl text-sm transition-colors"
-                >
-                  Export JSON
-                </a>
-                <a
-                  href="/api/export?format=csv"
-                  download
-                  className="flex-1 min-h-[44px] flex items-center justify-center border border-border hover:bg-bg-card-hover text-text-primary font-medium rounded-xl text-sm transition-colors"
-                >
-                  Export CSV
-                </a>
+              <div className="flex sm:justify-start">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex min-h-[44px] items-center justify-between gap-3 border border-border bg-bg-input px-4 hover:bg-bg-card-hover text-text-primary font-medium rounded-xl text-sm transition-colors">
+                      <Download className="w-4 h-4" />
+                      Export Options
+                      <ChevronDown className="w-4 h-4 text-text-tertiary" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuLabel>Select Format</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <a href="/api/export?format=json" download className="flex items-center gap-2 cursor-pointer w-full">
+                        <FileJson className="w-4 h-4 text-accent-yellow" />
+                        Export JSON
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="/api/export?format=csv" download className="flex items-center gap-2 cursor-pointer w-full">
+                        <FileSpreadsheet className="w-4 h-4 text-accent-green" />
+                        Export CSV
+                      </a>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>

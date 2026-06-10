@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Check, Plus, Minus } from 'lucide-react';
 import { clampNumber } from '@/lib/validation';
 
@@ -102,17 +103,8 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
 
   const initialized = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
 
   // Sync state if initialData changes
   useEffect(() => {
@@ -132,7 +124,6 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setSuccess(false);
 
     try {
       const response = await fetch('/api/checkin', {
@@ -158,13 +149,13 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
         throw new Error(data.error || 'Failed to save check-in');
       }
 
-      setSuccess(true);
+      toast.success('Check-in saved', {
+        action: {
+          label: 'View dashboard →',
+          onClick: () => router.replace('/'),
+        },
+      });
       router.refresh();
-      
-      // Redirect to dashboard after a short delay
-      timeoutRef.current = setTimeout(() => {
-        router.replace('/');
-      }, 800);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(msg);
@@ -285,31 +276,19 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
           {error}
         </div>
       )}
-      {success && (
-        <div id="checkin-success" className="text-accent-green text-sm font-mono bg-accent-green/10 border border-accent-green/20 rounded-xl p-4">
-          ✓ Daily check-in saved successfully.
-        </div>
-      )}
 
       {/* Submit Button */}
       <button
         id="checkin-save-btn"
         type="submit"
-        disabled={isLoading || success}
+        disabled={isLoading}
         className={`w-full h-[56px] rounded-full font-semibold text-[17px] text-bg-primary transition-all flex items-center justify-center gap-2 ${
-          success 
-            ? 'bg-accent-green cursor-default' 
-            : isLoading 
-              ? 'bg-accent-purple opacity-50 cursor-not-allowed' 
-              : 'bg-accent-purple hover:opacity-90 active:opacity-80 cursor-pointer'
+          isLoading 
+            ? 'bg-accent-purple opacity-50 cursor-not-allowed' 
+            : 'bg-accent-purple hover:opacity-90 active:opacity-80 cursor-pointer'
         }`}
       >
-        {success ? (
-          <>
-            <Check size={20} strokeWidth={3} />
-            Saved! Redirecting...
-          </>
-        ) : isLoading ? (
+        {isLoading ? (
           'Saving...'
         ) : initialData ? (
           'Update Check-In'
