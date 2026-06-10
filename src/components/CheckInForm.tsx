@@ -35,6 +35,7 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handleMinus}
+        aria-label="Decrease value"
         className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Minus size={20} />
@@ -42,6 +43,10 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <input
         id={id}
         type="text"
+        role="spinbutton"
+        aria-valuenow={Number(value) || 0}
+        aria-valuemin={min}
+        aria-valuemax={max}
         inputMode="decimal"
         min={min}
         max={max}
@@ -67,6 +72,7 @@ const StepperInput = ({ id, value, onChange, min = 0, max, step = 1 }: StepperIn
       <button 
         type="button" 
         onClick={handlePlus}
+        aria-label="Increase value"
         className="w-10 sm:w-14 h-full flex items-center justify-center text-text-secondary hover:text-text-primary bg-bg-card active:bg-bg-card-hover active:scale-95 touch-manipulation transition-all shrink-0"
       >
         <Plus size={20} />
@@ -102,7 +108,6 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
   const [notes, setNotes] = useState<string>(initialData?.notes ?? '');
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   const initialized = useRef(false);
 
@@ -123,7 +128,6 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     try {
       const response = await fetch('/api/checkin', {
@@ -157,8 +161,7 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
       });
       router.refresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(msg);
+      toast.error(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -203,6 +206,8 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
         <button
           id="walk-yes-btn"
           type="button"
+          role="switch"
+          aria-checked={walkedToday}
           onClick={() => setWalkedToday(!walkedToday)}
           className={`flex items-center justify-center gap-2 h-[56px] rounded-full border text-[15px] font-medium transition-all ${
             walkedToday
@@ -215,6 +220,8 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
         <button
           id="strength-yes-btn"
           type="button"
+          role="switch"
+          aria-checked={strengthToday}
           onClick={() => setStrengthToday(!strengthToday)}
           className={`flex items-center justify-center gap-2 h-[56px] rounded-full border text-[15px] font-medium transition-all ${
             strengthToday
@@ -269,13 +276,6 @@ export function CheckInForm({ initialData, sittingBreaksTarget, dateStr }: Check
           className="w-full bg-transparent border-none text-text-primary outline-none resize-none text-[15px] p-4 pt-0 focus:ring-0 min-h-[80px]"
         />
       </div>
-
-      {/* Feedback State */}
-      {error && (
-        <div id="checkin-error" className="text-accent-red text-sm font-mono bg-accent-red/10 border border-accent-red/20 rounded-xl p-4">
-          {error}
-        </div>
-      )}
 
       {/* Submit Button */}
       <button

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import * as RadioGroup from '@radix-ui/react-radio-group';
 
 interface SegmentedControlProps {
   options: { label: string; value: string | number }[];
@@ -19,26 +20,24 @@ export function SegmentedControl({
   const textSizes = { sm: 'text-[11px]', md: 'text-[13px]' };
 
   return (
-    <div
+    <RadioGroup.Root
+      value={String(value)}
+      onValueChange={(val) => {
+        const originalOpt = options.find(o => String(o.value) === val);
+        if (originalOpt) onChange(originalOpt.value);
+      }}
       className={`inline-flex items-center bg-bg-card rounded-[10px] p-[3px] gap-[2px] ${heights[size]}`}
+      orientation="horizontal"
     >
-      {options.map((opt) => {
-        const isActive = value === opt.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={`relative px-3 rounded-[8px] h-full ${textSizes[size]} font-semibold tracking-tight transition-all cursor-pointer ${
-              isActive
-                ? 'bg-bg-elevated text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
+      {options.map((opt) => (
+        <RadioGroup.Item
+          key={opt.value}
+          value={String(opt.value)}
+          className={`relative px-3 rounded-[8px] h-full ${textSizes[size]} font-semibold tracking-tight transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-purple focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=checked]:bg-bg-elevated data-[state=checked]:text-text-primary data-[state=checked]:shadow-sm data-[state=unchecked]:text-text-secondary data-[state=unchecked]:hover:text-text-primary`}
+        >
+          {opt.label}
+        </RadioGroup.Item>
+      ))}
+    </RadioGroup.Root>
   );
 }

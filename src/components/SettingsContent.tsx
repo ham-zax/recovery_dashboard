@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Lock, Unlock, Target, BarChart3, Calendar, Dumbbell, Pencil, Trash2, Plus, Download, AlertTriangle, CheckCircle2, ChevronDown, FileJson, FileSpreadsheet } from 'lucide-react';
 import { formatUtc } from '@/lib/validation';
 import { parseBoundedInt } from '@/lib/validation';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/Dialog';
 
 export interface Exercise {
   id: number;
@@ -78,6 +87,7 @@ export function SettingsContent({
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
   const [editingExerciseName, setEditingExerciseName] = useState<string>('');
   const [editingExerciseCategory, setEditingExerciseCategory] = useState<'LOWER' | 'UPPER'>('LOWER');
+  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
 
   // Protocol Lock form state
   const [lockVersion, setLockVersion] = useState<string>(initialLock?.version || 'v1.0');
@@ -163,6 +173,7 @@ export function SettingsContent({
       }
 
       setSaveStatus('saved');
+      toast.success('Settings saved successfully');
       setChangeReason('');
       setChangeNotes('');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -175,7 +186,7 @@ export function SettingsContent({
 
   const handleSaveLock = async () => {
     if (!lockDate) {
-      alert('Please specify a lock date.');
+      toast.error('Please specify a lock date');
       return;
     }
     setSaveStatus('saving');
@@ -193,12 +204,10 @@ export function SettingsContent({
         }),
       });
 
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error ?? 'Failed to lock protocol');
-      }
+      if (!res.ok) throw new Error('Failed to lock protocol');
 
       setSaveStatus('saved');
+      toast.success('Protocol locked successfully');
       setTimeout(() => setSaveStatus('idle'), 3000);
       router.refresh();
     } catch (err) {
@@ -223,10 +232,11 @@ export function SettingsContent({
 
       if (!res.ok) throw new Error('Failed to add exercise');
 
+      toast.success('Exercise added');
       setNewExerciseName('');
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error adding exercise');
+      toast.error(err instanceof Error ? err.message : 'Error adding exercise');
     }
   };
 
@@ -250,25 +260,29 @@ export function SettingsContent({
 
       if (!res.ok) throw new Error('Failed to update exercise');
 
+      toast.success('Exercise updated');
       setEditingExerciseId(null);
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error saving exercise');
+      toast.error(err instanceof Error ? err.message : 'Error saving exercise');
     }
   };
 
-  const handleDeactivateExercise = async (id: number) => {
-    if (!confirm('Are you sure you want to deactivate this exercise? It will no longer show up in workout logs.')) return;
+  const handleDeactivateExercise = async () => {
+    if (!exerciseToDelete) return;
+    
     try {
-      const res = await fetch(`/api/exercises/${id}`, {
+      const res = await fetch(`/api/exercises/${exerciseToDelete.id}`, {
         method: 'DELETE',
       });
 
       if (!res.ok) throw new Error('Failed to deactivate exercise');
 
+      toast.success('Exercise deactivated');
+      setExerciseToDelete(null);
       router.refresh();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error deactivating exercise');
+      toast.error(err instanceof Error ? err.message : 'Error deactivating exercise');
     }
   };
 
@@ -720,7 +734,7 @@ export function SettingsContent({
                                   <Pencil className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeactivateExercise(ex.id)}
+                                  onClick={() => setExerciseToDelete(ex)}
                                   disabled={locked}
                                   className="text-text-secondary hover:text-accent-red disabled:opacity-30 disabled:hover:bg-transparent w-11 h-11 flex items-center justify-center rounded-lg hover:bg-bg-card cursor-pointer transition-colors"
                                   title="Delete exercise"
@@ -822,6 +836,32 @@ export function SettingsContent({
           Changes Saved
         </div>
       )}
+
+      {/* Delete Exercise Confirmation Dialog */}
+      <Dialog open={!!exerciseToDelete} onOpenChange={(open) => !open && setExerciseToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Deactivate Exercise</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate <strong className="text-text-primary">{exerciseToDelete?.name}</strong>? It will no longer show up in workout logs, but historical data will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button 
+              onClick={() => setExerciseToDelete(null)}
+              className="px-4 py-2 bg-transparent text-text-secondary hover:text-text-primary font-semibold rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleDeactivateExercise}
+              className="px-4 py-2 bg-accent-red text-bg-primary font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
+            >
+              Deactivate
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

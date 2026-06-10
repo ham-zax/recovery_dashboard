@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { ExerciseCard, SetData } from './ExerciseCard';
 import { SegmentedControl } from './ui/SegmentedControl';
 
@@ -51,8 +52,6 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
 
   // Filter exercises for active category
   const activeCategoryExercises = exercises
@@ -69,8 +68,6 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
-    setSuccess(false);
 
     try {
       // Prepare payload: only send exercises from the selected category that have logged sets
@@ -114,7 +111,7 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
         throw new Error(result.error || 'Failed to save workout session.');
       }
 
-      setSuccess(true);
+      toast.success('Workout logged');
       setNotes('');
       
       // Reset sets to default
@@ -131,13 +128,8 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
       });
 
       router.refresh();
-
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(msg);
+      toast.error(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -219,30 +211,19 @@ export function WorkoutForm({ exercises, lastSessions }: WorkoutFormProps) {
         />
       </div>
 
-      {/* Message States */}
-      {error && (
-        <div id="workout-error" className="text-accent-red text-sm font-mono bg-accent-red/10 border border-accent-red/20 rounded-lg p-3">
-          Error: {error}
-        </div>
-      )}
-      {success && (
-        <div id="workout-success" className="flex items-center gap-2 text-accent-green text-sm font-mono bg-accent-green/10 border border-accent-green/20 rounded-lg p-3">
-          <CheckCircle2 size={16} />
-          Workout logged successfully.
-        </div>
-      )}
-
-      {/* Submit Button */}
-      <button
-        id="workout-save-btn"
-        type="submit"
-        disabled={isLoading}
-        className={`w-full py-2.5 px-4 rounded-lg font-semibold text-bg-primary bg-accent-blue hover:opacity-90 active:opacity-80 transition-all font-mono cursor-pointer ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
-      >
-        {isLoading ? 'Saving Session...' : 'Save Workout'}
-      </button>
+      <div className="pt-6 border-t border-border mt-8 flex flex-col items-center">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full max-w-sm h-14 rounded-full font-bold text-[17px] text-bg-primary transition-all flex items-center justify-center gap-2 shadow-lg ${
+            isLoading 
+              ? 'bg-accent-purple opacity-50 cursor-not-allowed' 
+              : 'bg-accent-purple hover:bg-opacity-90 active:scale-[0.98]'
+          }`}
+        >
+          {isLoading ? 'Saving Session...' : 'Log Workout'}
+        </button>
+      </div>
     </form>
   );
 }

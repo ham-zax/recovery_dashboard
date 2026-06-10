@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Target, Activity, CheckCircle2, History, Info, GitMerge } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { formatUtc } from '@/lib/validation';
 import {
   Dialog,
@@ -73,7 +74,7 @@ export function ProtocolDetailContent({ protocolId }: { protocolId: string }) {
       }
       router.push('/settings');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error cloning protocol');
+      toast.error(err instanceof Error ? err.message : 'Error cloning protocol');
       setCloning(false);
     }
   }
