@@ -14,7 +14,7 @@ export function DateRedirect() {
   }, [router]);
 
   return (
-    <div className="flex justify-center items-center h-64 text-text-secondary font-medium animate-pulse">
+    <div className="flex justify-center items-center h-64 text-text-secondary font-medium skeleton-shimmer rounded-xl">
       Loading your check-in...
     </div>
   );

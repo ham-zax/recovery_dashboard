@@ -19,29 +19,21 @@ export default async function CheckInPage(props: { searchParams: Promise<{ date?
     return <DateRedirect />;
   }
 
-  // Fetch today's check-in
-  const targetCheckIn = await prisma.dailyLog.findUnique({
-    where: { date: targetDate },
-  });
-
-  // Fetch last 3 days of check-ins (before targetDate)
-  const previousLogs = await prisma.dailyLog.findMany({
-    where: {
-      date: {
-        lt: targetDate,
-      },
-    },
-    orderBy: {
-      date: 'desc',
-    },
-    take: 3,
-  });
-
-  // Fetch active protocol for sittingTarget
-  const activeProtocol = await prisma.protocol.findFirst({
-    where: { active: true },
-    select: { sittingTarget: true }
-  });
+  // Fetch data in parallel to avoid sequential network waterfalls
+  const [targetCheckIn, previousLogs, activeProtocol] = await Promise.all([
+    prisma.dailyLog.findUnique({
+      where: { date: targetDate },
+    }),
+    prisma.dailyLog.findMany({
+      where: { date: { lt: targetDate } },
+      orderBy: { date: 'desc' },
+      take: 3,
+    }),
+    prisma.protocol.findFirst({
+      where: { active: true },
+      select: { sittingTarget: true }
+    })
+  ]);
 
   const sittingBreaksTarget = activeProtocol?.sittingTarget || 10;
 

@@ -13,35 +13,37 @@ export default async function WorkoutPage() {
 
   const lastSessions: Record<number, { date: string, sets: SetData[] } | null> = {};
 
-  // For each exercise, retrieve the sets logged during the most recent workout session
-  for (const ex of exercises) {
-    const lastEntry = await prisma.exerciseEntry.findFirst({
-      where: { exerciseId: ex.id },
-      orderBy: { session: { date: 'desc' } },
-      select: { sessionId: true, session: { select: { date: true } } },
-    });
-
-    if (lastEntry) {
-      const entries = await prisma.exerciseEntry.findMany({
-        where: {
-          exerciseId: ex.id,
-          sessionId: lastEntry.sessionId,
-        },
-        orderBy: { setNumber: 'asc' },
-        select: {
-          weight: true,
-          reps: true,
-          rpe: true,
-        },
+  // For each exercise, retrieve the sets logged during the most recent workout session concurrently
+  await Promise.all(
+    exercises.map(async (ex) => {
+      const lastEntry = await prisma.exerciseEntry.findFirst({
+        where: { exerciseId: ex.id },
+        orderBy: { session: { date: 'desc' } },
+        select: { sessionId: true, session: { select: { date: true } } },
       });
-      lastSessions[ex.id] = {
-        date: lastEntry.session.date.toISOString(),
-        sets: entries,
-      };
-    } else {
-      lastSessions[ex.id] = null;
-    }
-  }
+
+      if (lastEntry) {
+        const entries = await prisma.exerciseEntry.findMany({
+          where: {
+            exerciseId: ex.id,
+            sessionId: lastEntry.sessionId,
+          },
+          orderBy: { setNumber: 'asc' },
+          select: {
+            weight: true,
+            reps: true,
+            rpe: true,
+          },
+        });
+        lastSessions[ex.id] = {
+          date: lastEntry.session.date.toISOString(),
+          sets: entries,
+        };
+      } else {
+        lastSessions[ex.id] = null;
+      }
+    })
+  );
 
   // Fetch the workout schedule from active protocol
   const { getActiveProtocol } = await import('@/lib/protocol');
